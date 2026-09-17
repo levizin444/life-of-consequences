@@ -332,7 +332,7 @@ function Jogo() {
               <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
               <span>Dado: {dado}</span>
             </div>
-            <h2 className="mt-2 text-xl leading-snug text-foreground">{pergunta.enunciado}</h2>
+            <h2 className="mt-2 font-sans text-lg font-semibold leading-snug text-foreground">{pergunta.enunciado}</h2>
             <div className="mt-4 space-y-2">
               {pergunta.opcoes.map((op) => (
                 <button
