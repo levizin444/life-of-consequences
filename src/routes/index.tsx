@@ -67,7 +67,7 @@ function novoJogador(id: number, nome: string): Jogador {
   return {
     id,
     nome,
-    cor: CORES[id],
+    cor: CORES[id]!,
     pos: 0,
     saude: 70,
     dinheiro: 60,
@@ -89,10 +89,10 @@ function Jogo() {
     null,
   );
 
-  const atual = jogadores[vez];
+  const atual = jogadores[vez]!;
 
   function iniciar() {
-    setJogadores(nomes.map((n, i) => novoJogador(i, n.trim() || PADRAO[i])));
+    setJogadores(nomes.map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)));
     setVez(0);
     setUsadas([]);
     setDado(null);
@@ -103,7 +103,7 @@ function Jogo() {
   function sortearPergunta(): Pergunta {
     const livres = PERGUNTAS.filter((p) => !usadas.includes(p.id));
     const pool = livres.length ? livres : PERGUNTAS;
-    const p = pool[Math.floor(Math.random() * pool.length)];
+    const p = pool[Math.floor(Math.random() * pool.length)]!;
     setUsadas((u) => (livres.length ? [...u, p.id] : [p.id]));
     return p;
   }
@@ -116,7 +116,7 @@ function Jogo() {
     let i = vez;
     do {
       i = (i + 1) % lista.length;
-    } while (lista[i].terminou);
+    } while (lista[i]!.terminou);
     setVez(i);
     setDado(null);
     setResultado(null);
@@ -130,7 +130,7 @@ function Jogo() {
     const lista = jogadores.map((j) => (j.id === atual.id ? { ...j, pos: destino } : j));
     setJogadores(lista);
 
-    const casa = TABULEIRO[destino];
+    const casa = TABULEIRO[destino]!;
 
     if (casa.tipo === "pergunta") {
       setPergunta(sortearPergunta());
@@ -138,7 +138,7 @@ function Jogo() {
       return;
     }
     if (casa.tipo === "evento") {
-      const ev = EVENTOS[Math.floor(Math.random() * EVENTOS.length)];
+      const ev = EVENTOS[Math.floor(Math.random() * EVENTOS.length)]!;
       setJogadores(lista.map((j) => (j.id === atual.id ? aplicar(j, ev.efeito) : j)));
       setResultado({ titulo: "Acontecimento", texto: ev.texto, efeito: ev.efeito });
       setFase("resultado");
@@ -149,7 +149,7 @@ function Jogo() {
       setJogadores(lista.map((j) => (j.id === atual.id ? aplicar(j, ef) : j)));
       setResultado({
         titulo: "Respiro",
-        texto: DESCANSOS[Math.floor(Math.random() * DESCANSOS.length)],
+        texto: DESCANSOS[Math.floor(Math.random() * DESCANSOS.length)]!,
         efeito: ef,
       });
       setFase("resultado");
