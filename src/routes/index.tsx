@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Brain, CircleDollarSign, Dices, HeartPulse, Home, ShieldCheck, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
-  DESCANSOS,
-  EVENTOS,
   PERGUNTAS,
   TABULEIRO,
   calcularFinal,
@@ -137,24 +136,6 @@ function Jogo() {
       setFase("pergunta");
       return;
     }
-    if (casa.tipo === "evento") {
-      const ev = EVENTOS[Math.floor(Math.random() * EVENTOS.length)]!;
-      setJogadores(lista.map((j) => (j.id === atual.id ? aplicar(j, ev.efeito) : j)));
-      setResultado({ titulo: "Acontecimento", texto: ev.texto, efeito: ev.efeito });
-      setFase("resultado");
-      return;
-    }
-    if (casa.tipo === "descanso") {
-      const ef: Efeito = { saude: 10, familia: 5 };
-      setJogadores(lista.map((j) => (j.id === atual.id ? aplicar(j, ef) : j)));
-      setResultado({
-        titulo: "Respiro",
-        texto: DESCANSOS[Math.floor(Math.random() * DESCANSOS.length)]!,
-        efeito: ef,
-      });
-      setFase("resultado");
-      return;
-    }
     if (casa.tipo === "final") {
       const finalizados = lista.map((j) => (j.id === atual.id ? { ...j, terminou: true } : j));
       setJogadores(finalizados);
@@ -285,41 +266,70 @@ function Jogo() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-6 pb-28">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-2xl text-foreground">Escolhas Reais</h1>
-        <span className="text-xs uppercase tracking-widest text-muted-foreground">
-          Casa {atual.pos + 1}/{TABULEIRO.length}
-        </span>
+    <main className="min-h-screen w-full px-4 py-4 md:h-screen md:overflow-hidden md:px-6 md:py-5">
+      <header className="mx-auto flex max-w-[1500px] items-center justify-between border-b border-border pb-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <ShieldCheck className="size-5" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Jogo da vida</p>
+            <h1 className="text-2xl leading-none text-foreground">Escolhas Reais</h1>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Progresso</p>
+          <p className="font-display text-xl text-foreground">
+            {atual.pos + 1}<span className="text-muted-foreground">/{TABULEIRO.length}</span>
+          </p>
+        </div>
       </header>
 
-      <Tabuleiro jogadores={jogadores} />
+      <div className="mx-auto mt-4 grid max-w-[1500px] gap-4 md:h-[calc(100vh-88px)] md:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.8fr)]">
+        <div className="flex min-h-0 flex-col gap-3">
+          <Tabuleiro jogadores={jogadores} atual={atual} />
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        {jogadores.map((j, i) => (
-          <div
-            key={j.id}
-            className={`panel p-3 ${j.id === atual.id ? "ring-2 ring-ring" : ""} ${
-              j.terminou ? "opacity-60" : ""
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`size-3 rounded-full ${j.cor}`} />
-              <span className={`truncate text-sm font-semibold ${CORES_TEXTO[i]}`}>{j.nome}</span>
+          <section className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4" aria-label="Status dos jogadores">
+            {jogadores.map((j, i) => (
+              <div
+                key={j.id}
+                className={`player-panel min-w-0 p-3 ${j.id === atual.id ? "player-panel-active" : ""} ${
+                  j.terminou ? "opacity-60" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`size-3 shrink-0 rounded-full ${j.cor}`} />
+                    <span className={`truncate text-sm font-bold ${CORES_TEXTO[i]}`}>{j.nome}</span>
+                  </div>
+                  <span className="shrink-0 font-display text-base text-muted-foreground">#{j.pos + 1}</span>
+                </div>
+                <Barras j={j} compacto />
+              </div>
+            ))}
+          </section>
+        </div>
+
+        <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
+          <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
+              <h2 className={`mt-1 text-2xl ${CORES_TEXTO[atual.id]}`}>{atual.nome}</h2>
             </div>
-            <Barras j={j} compacto />
+            <div className="flex size-12 items-center justify-center rounded-md border border-border bg-secondary">
+              {dado ? <span className="font-display text-3xl text-primary">{dado}</span> : <Dices className="size-6 text-primary" />}
+            </div>
           </div>
-        ))}
-      </div>
 
-      <section className="panel mt-4 p-5">
         {fase === "rolar" && (
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">Vez de</p>
-            <h2 className={`text-3xl ${CORES_TEXTO[atual.id]}`}>{atual.nome}</h2>
+          <div className="flex flex-1 flex-col justify-center text-center">
+            <Dices className="mx-auto size-14 text-primary" aria-hidden="true" />
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sua vez de avançar</p>
+            <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
             <button
               onClick={rolar}
-              className="mt-4 w-full rounded-lg bg-accent px-4 py-4 font-display text-2xl text-accent-foreground transition hover:opacity-90"
+              className="mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
             >
               Rolar o dado
             </button>
@@ -327,20 +337,23 @@ function Jogo() {
         )}
 
         {fase === "pergunta" && pergunta && (
-          <div>
-            <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
+          <div className="flex flex-1 flex-col">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+              {pergunta.tema === "drogas" ? <HeartPulse className="size-4" /> : <CircleDollarSign className="size-4" />}
               <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
-              <span>Dado: {dado}</span>
             </div>
-            <h2 className="mt-2 font-sans text-lg font-semibold leading-snug text-foreground">{pergunta.enunciado}</h2>
-            <div className="mt-4 space-y-2">
-              {pergunta.opcoes.map((op) => (
+            <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
+            <div className="mt-6 grid gap-3">
+              {pergunta.opcoes.map((op, index) => (
                 <button
                   key={op.texto}
                   onClick={() => responder(op)}
-                  className="w-full rounded-lg border border-border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted"
+                  className="answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border border-border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted"
                 >
-                  {op.texto}
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
+                    {String.fromCharCode(65 + index)}
+                  </span>
+                  <span className="leading-snug">{op.texto}</span>
                 </button>
               ))}
             </div>
@@ -348,77 +361,101 @@ function Jogo() {
         )}
 
         {fase === "resultado" && resultado && (
-          <div>
-            <p className="text-xs uppercase tracking-widest text-primary">{resultado.titulo}</p>
-            <p className="mt-2 text-base leading-relaxed text-foreground">{resultado.texto}</p>
+          <div className="flex flex-1 flex-col">
+            <div className="flex size-12 items-center justify-center rounded-md bg-accent/15 text-accent">
+              <Brain className="size-6" aria-hidden="true" />
+            </div>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{resultado.titulo}</p>
+            <h2 className="mt-2 text-3xl text-foreground">Toda escolha deixa uma marca</h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">{resultado.texto}</p>
             <Efeitos efeito={resultado.efeito} />
             <button
               onClick={continuar}
-              className="mt-5 w-full rounded-lg bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
+              className="mt-auto w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
             >
               Passar a vez
             </button>
           </div>
         )}
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
 
-function Tabuleiro({ jogadores }: { jogadores: Jogador[] }) {
+function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador }) {
   const porCasa = useMemo(() => {
     const m = new Map<number, Jogador[]>();
     jogadores.forEach((j) => m.set(j.pos, [...(m.get(j.pos) ?? []), j]));
     return m;
   }, [jogadores]);
 
+  const casasVisuais = useMemo(() => {
+    const linhas: { casa: (typeof TABULEIRO)[number]; indice: number }[][] = [];
+    for (let inicio = 0; inicio < TABULEIRO.length; inicio += 5) {
+      const linha = TABULEIRO.slice(inicio, inicio + 5).map((casa, offset) => ({ casa, indice: inicio + offset }));
+      linhas.push(linhas.length % 2 === 1 ? linha.reverse() : linha);
+    }
+    return linhas.flat();
+  }, []);
+
   return (
-    <div className="panel mt-4 grid grid-cols-5 gap-1.5 p-3">
-      {TABULEIRO.map((casa, i) => {
+    <section className="board-panel flex min-h-[440px] flex-1 flex-col p-3 md:min-h-0 md:p-4" aria-label="Mapa do jogo">
+      <div className="mb-3 flex items-end justify-between px-1">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">O caminho das escolhas</p>
+          <h2 className="mt-1 text-2xl text-foreground">Mapa da vida</h2>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Users className="size-4" /> 4 jogadores
+        </div>
+      </div>
+      <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-4 gap-2">
+      {casasVisuais.map(({ casa, indice: i }) => {
         const aqui = porCasa.get(i) ?? [];
-        const tom =
-          casa.tipo === "pergunta"
-            ? "border-primary/40 bg-primary/10"
-            : casa.tipo === "evento"
-              ? "border-accent/40 bg-accent/10"
-              : casa.tipo === "descanso"
-                ? "border-success/40 bg-success/10"
-                : "border-border bg-secondary";
+        const tom = casa.tipo === "final" ? "border-accent/60 bg-accent/10" : casa.tipo === "inicio" ? "border-border bg-muted" : "border-border bg-secondary";
         return (
           <div
             key={i}
-            className={`relative flex min-h-16 flex-col justify-between rounded-md border p-1.5 ${tom}`}
+            className={`board-space relative flex min-h-0 flex-col justify-between rounded-md border p-2 ${tom} ${
+              atual.pos === i ? "board-space-active" : ""
+            }`}
           >
-            <span className="text-[9px] leading-tight text-muted-foreground">{casa.rotulo}</span>
-            <div className="flex flex-wrap gap-0.5">
+            <div className="flex items-start justify-between gap-1">
+              <span className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">{casa.rotulo}</span>
+              <span className="font-display text-base leading-none text-border">{String(i + 1).padStart(2, "0")}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1">
               {aqui.map((j) => (
-                <span key={j.id} className={`size-2.5 rounded-full ${j.cor}`} />
+                <span key={j.id} className={`player-token size-4 rounded-full border-2 border-background ${j.cor}`} title={j.nome} />
               ))}
+              {casa.tipo === "inicio" && !aqui.length ? <Home className="size-4 text-muted-foreground" /> : null}
+              {casa.tipo === "final" ? <ShieldCheck className="ml-auto size-4 text-accent" /> : null}
             </div>
           </div>
         );
       })}
-    </div>
+      </div>
+    </section>
   );
 }
 
 function Barras({ j, compacto }: { j: Jogador; compacto?: boolean }) {
-  const itens: [string, number, string][] = [
-    ["Saúde", j.saude, "bg-success"],
-    ["Dinheiro", j.dinheiro, "bg-warning"],
-    ["Família", j.familia, "bg-p3"],
-    ["Consciência", j.consciencia, "bg-primary"],
+  const itens: [string, number, string, typeof HeartPulse][] = [
+    ["Saúde", j.saude, "bg-success", HeartPulse],
+    ["Dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
+    ["Família", j.familia, "bg-p3", Users],
+    ["Consciência", j.consciencia, "bg-primary", Brain],
   ];
   return (
     <div className={compacto ? "mt-2 space-y-1" : "mt-4 space-y-1.5"}>
-      {itens.map(([nome, valor, cor]) => (
+      {itens.map(([nome, valor, cor, Icon]) => (
         <div key={nome} className="flex items-center gap-2">
-          <span className="w-16 shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-            {nome}
-          </span>
+          <Icon className="size-3 shrink-0 text-muted-foreground" aria-label={nome} />
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div className={`h-full rounded-full ${cor}`} style={{ width: `${valor}%` }} />
           </div>
+          <span className="w-5 text-right text-[9px] text-muted-foreground">{valor}</span>
         </div>
       ))}
     </div>

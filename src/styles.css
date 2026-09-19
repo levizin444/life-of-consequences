@@ -40,7 +40,7 @@
   --color-p4: var(--p4);
   --font-display: "Bebas Neue", system-ui, sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
-  --shadow-glow: 0 0 0 1px var(--border), 0 22px 45px -24px oklch(0 0 0 / 0.92);
+  --shadow-glow: 0 18px 55px -38px oklch(0 0 0 / 0.95);
 }
 
 :root {
@@ -83,6 +83,11 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: -1px -1px;
   }
 
   h1,
@@ -98,4 +103,55 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-glow);
+}
+
+@utility board-panel {
+  background-color: color-mix(in oklab, var(--card) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glow);
+}
+
+@utility question-panel {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-glow);
+}
+
+@utility player-panel {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+@utility player-panel-active {
+  border-color: var(--ring);
+  background-color: color-mix(in oklab, var(--primary) 7%, var(--card));
+}
+
+@utility board-space {
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+@utility board-space-active {
+  border-color: var(--ring);
+  background-color: color-mix(in oklab, var(--primary) 13%, var(--secondary));
+  box-shadow: inset 0 0 0 1px var(--ring);
+  transform: translateY(-1px);
+}
+
+@utility player-token {
+  box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 25%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
