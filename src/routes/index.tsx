@@ -266,7 +266,7 @@ function Jogo() {
   }
 
   return (
-    <main className="min-h-screen w-full px-4 py-4 lg:h-screen lg:overflow-hidden lg:px-6 lg:py-5">
+    <main className="min-h-screen w-full px-4 py-4 md:h-screen md:overflow-hidden md:px-6 md:py-5">
       <header className="mx-auto flex max-w-[1500px] items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -285,11 +285,11 @@ function Jogo() {
         </div>
       </header>
 
-      <div className="mx-auto mt-4 grid max-w-[1500px] gap-4 lg:h-[calc(100vh-88px)] lg:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.8fr)]">
+      <div className="mx-auto mt-4 grid max-w-[1500px] gap-4 md:h-[calc(100vh-88px)] md:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.8fr)]">
         <div className="flex min-h-0 flex-col gap-3">
           <Tabuleiro jogadores={jogadores} atual={atual} />
 
-          <section className="grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4" aria-label="Status dos jogadores">
+          <section className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4" aria-label="Status dos jogadores">
             {jogadores.map((j, i) => (
               <div
                 key={j.id}
@@ -310,7 +310,7 @@ function Jogo() {
           </section>
         </div>
 
-        <section className="question-panel flex min-h-[420px] flex-col p-5 lg:min-h-0 lg:p-6">
+        <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
           <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
@@ -342,7 +342,7 @@ function Jogo() {
               {pergunta.tema === "drogas" ? <HeartPulse className="size-4" /> : <CircleDollarSign className="size-4" />}
               <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
             </div>
-            <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground lg:text-2xl">{pergunta.enunciado}</h2>
+            <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
             <div className="mt-6 grid gap-3">
               {pergunta.opcoes.map((op, index) => (
                 <button
@@ -400,7 +400,7 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
   }, []);
 
   return (
-    <section className="board-panel flex min-h-[440px] flex-1 flex-col p-3 lg:min-h-0 lg:p-4" aria-label="Mapa do jogo">
+    <section className="board-panel flex min-h-[440px] flex-1 flex-col p-3 md:min-h-0 md:p-4" aria-label="Mapa do jogo">
       <div className="mb-3 flex items-end justify-between px-1">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">O caminho das escolhas</p>
