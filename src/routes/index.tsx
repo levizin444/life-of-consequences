@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   PERGUNTAS,
   TABULEIRO,
@@ -26,13 +26,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Jogo de tabuleiro digital para 4 jogadores sobre prevenção ao vício em drogas e em casas de aposta. Responda, avance e descubra seu final.",
+          "Jogo de tabuleiro digital para 2 a 4 jogadores sobre prevenção ao vício em drogas e em casas de aposta. Responda, avance e descubra seu final.",
       },
       { property: "og:title", content: "Jogo da Vida: Escolhas Reais" },
       {
         property: "og:description",
         content:
-          "4 jogadores, perguntas reais sobre drogas e apostas, e finais diferentes para cada escolha.",
+          "De 2 a 4 jogadores, perguntas reais sobre drogas e apostas, e finais diferentes para cada escolha.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -56,7 +56,7 @@ type Jogador = {
   perdaRisco: number;
 };
 
-type Fase = "setup" | "rolar" | "pergunta" | "resultado" | "fim";
+type Fase = "setup" | "rolar" | "rolando" | "pergunta" | "resultado" | "fim";
 
 const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
 const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
@@ -104,6 +104,7 @@ function novoJogador(id: number, nome: string): Jogador {
 
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
+  const [quantidade, setQuantidade] = useState(4);
   const [nomes, setNomes] = useState<string[]>(["", "", "", ""]);
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [vez, setVez] = useState(0);
@@ -115,8 +116,17 @@ function Jogo() {
   );
   const [flutuante, setFlutuante] = useState<{ id: number; efeito: Efeito; key: number } | null>(null);
   const [modalApoio, setModalApoio] = useState<string | null>(null);
+  const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
+  const esperaDado = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const atual = jogadores[vez]!;
+
+  useEffect(() => {
+    return () => {
+      if (intervaloDado.current) clearInterval(intervaloDado.current);
+      if (esperaDado.current) clearTimeout(esperaDado.current);
+    };
+  }, []);
 
   function mostrarDeltas(id: number, efeito: Efeito) {
     const key = Date.now();
@@ -148,7 +158,9 @@ function Jogo() {
   }
 
   function iniciar() {
-    setJogadores(nomes.map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)));
+    setJogadores(
+      nomes.slice(0, quantidade).map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)),
+    );
     setVez(0);
     setUsadas([]);
     setDado(null);
@@ -179,8 +191,7 @@ function Jogo() {
     setFase("rolar");
   }
 
-  function rolar() {
-    const valor = 1 + Math.floor(Math.random() * 6);
+  function concluirRolagem(valor: number) {
     setDado(valor);
     const destino = Math.min(atual.pos + valor, TABULEIRO.length - 1);
     const lista = jogadores.map((j) => (j.id === atual.id ? { ...j, pos: destino } : j));
@@ -208,6 +219,23 @@ function Jogo() {
     setFase("resultado");
   }
 
+  function rolar() {
+    if (fase !== "rolar") return;
+    const valorFinal = 1 + Math.floor(Math.random() * 6);
+    setFase("rolando");
+    setDado(1 + Math.floor(Math.random() * 6));
+
+    intervaloDado.current = setInterval(() => {
+      setDado(1 + Math.floor(Math.random() * 6));
+    }, 90);
+
+    esperaDado.current = setTimeout(() => {
+      if (intervaloDado.current) clearInterval(intervaloDado.current);
+      intervaloDado.current = null;
+      concluirRolagem(valorFinal);
+    }, 1100);
+  }
+
   function responder(op: Opcao) {
     const lista = jogadores.map((j) => (j.id === atual.id ? aplicar(j, op.efeito) : j));
     setJogadores(lista);
@@ -224,6 +252,7 @@ function Jogo() {
     setFase("setup");
     setJogadores([]);
     setNomes(["", "", "", ""]);
+    setQuantidade(4);
   }
 
   if (fase === "setup") {
@@ -238,15 +267,32 @@ function Jogo() {
           <span className="text-accent">Escolhas Reais</span>
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          Quatro jogadores percorrem o mesmo caminho da vida. A cada casa, uma pergunta sobre drogas
+          De dois a quatro jogadores percorrem o mesmo caminho da vida. A cada casa, uma pergunta sobre drogas
           ou casas de aposta. Suas escolhas mudam saúde, dinheiro, família e consciência — e cada um
           termina com um final diferente.
         </p>
 
         <div className="panel mt-8 p-5">
           <h2 className="text-2xl">Quem vai jogar?</h2>
+          <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Quantidade de jogadores">
+            {[2, 3, 4].map((total) => (
+              <button
+                key={total}
+                type="button"
+                onClick={() => setQuantidade(total)}
+                aria-pressed={quantidade === total}
+                className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                  quantidade === total
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-secondary text-muted-foreground hover:border-primary hover:text-foreground"
+                }`}
+              >
+                {total} jogadores
+              </button>
+            ))}
+          </div>
           <div className="mt-4 space-y-3">
-            {nomes.map((n, i) => (
+            {nomes.slice(0, quantidade).map((n, i) => (
               <div key={i} className="flex items-center gap-3">
                 <span className={`size-5 shrink-0 rounded-full ${CORES[i]}`} />
                 <input
@@ -337,7 +383,7 @@ function Jogo() {
   }
 
   return (
-    <main className="min-h-screen w-full px-4 py-4 md:h-screen md:overflow-hidden md:px-6 md:py-5">
+    <main className="min-h-screen w-full px-4 pb-10 pt-4 md:px-6 md:pb-12 md:pt-5">
       <header className="mx-auto flex max-w-[1500px] items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -356,7 +402,7 @@ function Jogo() {
         </div>
       </header>
 
-      <div className="mx-auto mt-4 grid max-w-[1500px] gap-4 md:h-[calc(100vh-88px)] md:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.8fr)]">
+      <div className="mx-auto mt-4 grid max-w-[1500px] items-start gap-4 md:min-h-[calc(100vh-112px)] md:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.8fr)]">
         <div className="flex min-h-0 flex-col gap-3">
           <Tabuleiro jogadores={jogadores} atual={atual} />
 
@@ -392,8 +438,8 @@ function Jogo() {
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
               <h2 className={`mt-1 text-2xl ${CORES_TEXTO[atual.id]}`}>{atual.nome}</h2>
             </div>
-            <div className="flex size-12 items-center justify-center rounded-md border border-border bg-secondary">
-              {dado ? <span className="font-display text-3xl text-primary">{dado}</span> : <Dices className="size-6 text-primary" />}
+            <div className={`flex size-12 items-center justify-center rounded-md border border-border bg-secondary ${fase === "rolando" ? "dice-rolling" : ""}`}>
+              {dado ? <DiceFace valor={dado} compacto /> : <Dices className="size-6 text-primary" />}
             </div>
           </div>
 
@@ -424,6 +470,17 @@ function Jogo() {
           </div>
         )}
 
+        {fase === "rolando" && dado && (
+          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
+            <div className="dice-stage" aria-label={`Dado mostrando ${dado}`}>
+              <DiceFace valor={dado} />
+            </div>
+            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Dado em movimento</p>
+            <h2 className="mt-2 text-4xl text-foreground">Rolando...</h2>
+            <p className="mt-2 text-sm text-muted-foreground">A sorte está lançada, {atual.nome}.</p>
+          </div>
+        )}
+
         {fase === "pergunta" && pergunta && (
           <div className="flex flex-1 flex-col">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -431,7 +488,7 @@ function Jogo() {
               <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
             </div>
             <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
-            <div className="mt-6 grid gap-3">
+            <div className="mt-6 grid gap-3 pb-4">
               {pergunta.opcoes.map((op, index) => (
                 <button
                   key={op.texto}
@@ -537,7 +594,7 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
           <h2 className="mt-1 text-2xl text-foreground">Mapa da vida</h2>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Users className="size-4" /> 4 jogadores
+          <Users className="size-4" /> {jogadores.length} jogadores
         </div>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-4 gap-2">
@@ -567,6 +624,28 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
       })}
       </div>
     </section>
+  );
+}
+
+function DiceFace({ valor, compacto = false }: { valor: number; compacto?: boolean }) {
+  const pontos: Record<number, number[]> = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8],
+  };
+  const ativos = pontos[valor] ?? pontos[1];
+  return (
+    <div className={`grid grid-cols-3 grid-rows-3 ${compacto ? "size-7 gap-0.5" : "size-24 gap-2 rounded-xl border-2 border-primary bg-secondary p-4 shadow-lg"}`}>
+      {Array.from({ length: 9 }, (_, i) => (
+        <span
+          key={i}
+          className={`${compacto ? "size-1.5" : "size-3"} place-self-center rounded-full ${ativos?.includes(i) ? "bg-primary" : "bg-transparent"}`}
+        />
+      ))}
+    </div>
   );
 }
 
