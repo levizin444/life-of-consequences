@@ -104,8 +104,43 @@ function Jogo() {
   const [resultado, setResultado] = useState<{ titulo: string; texto: string; efeito: Efeito } | null>(
     null,
   );
+  const [flutuante, setFlutuante] = useState<{ id: number; efeito: Efeito; key: number } | null>(null);
+  const [modalApoio, setModalApoio] = useState<string | null>(null);
 
   const atual = jogadores[vez]!;
+
+  function mostrarDeltas(id: number, efeito: Efeito) {
+    const key = Date.now();
+    setFlutuante({ id, efeito, key });
+    setTimeout(() => setFlutuante((f) => (f && f.key === key ? null : f)), 1400);
+  }
+
+  function buscarAjuda() {
+    const menor = (["saude", "dinheiro", "familia", "consciencia"] as const).reduce((a, b) =>
+      atual[a] <= atual[b] ? a : b,
+    );
+    const efeito: Efeito = { [menor]: 30 };
+    const lista = jogadores.map((j) =>
+      j.id === atual.id
+        ? {
+            ...j,
+            [menor]: clamp(j[menor] + 30),
+            usouApoio: true,
+            esteveCritico: true,
+          }
+        : j,
+    );
+    setJogadores(lista);
+    mostrarDeltas(atual.id, efeito);
+    setModalApoio(
+      "Você buscou apoio na sua rede de contatos (família/profissionais). Pedir ajuda não é fraqueza: é o passo mais forte de quem quer recomeçar.",
+    );
+  }
+
+  function fecharApoio() {
+    setModalApoio(null);
+    proximoTurno(jogadores);
+  }
 
   function iniciar() {
     setJogadores(nomes.map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)));
