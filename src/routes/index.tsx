@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, CircleDollarSign, Dices, HeartPulse, Home, ShieldCheck, Users } from "lucide-react";
+import {
+  Brain,
+  CircleDollarSign,
+  Dices,
+  HeartPulse,
+  Home,
+  LifeBuoy,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   PERGUNTAS,
