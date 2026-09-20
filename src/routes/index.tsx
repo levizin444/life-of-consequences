@@ -42,6 +42,9 @@ type Jogador = {
   familia: number;
   consciencia: number;
   terminou: boolean;
+  usouApoio: boolean;
+  esteveCritico: boolean;
+  perdaRisco: number;
 };
 
 type Fase = "setup" | "rolar" | "pergunta" | "resultado" | "fim";
