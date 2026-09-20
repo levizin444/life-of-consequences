@@ -147,6 +147,42 @@
   box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 25%, transparent);
 }
 
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
+@utility float-delta {
+  animation: float-up 1300ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes bar-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+@utility bar-critical {
+  animation: bar-shake 700ms ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

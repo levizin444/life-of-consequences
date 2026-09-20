@@ -1,5 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, CircleDollarSign, Dices, HeartPulse, Home, ShieldCheck, Users } from "lucide-react";
+import {
+  Brain,
+  CircleDollarSign,
+  Dices,
+  HeartPulse,
+  Home,
+  LifeBuoy,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   PERGUNTAS,
@@ -42,6 +51,9 @@ type Jogador = {
   familia: number;
   consciencia: number;
   terminou: boolean;
+  usouApoio: boolean;
+  esteveCritico: boolean;
+  perdaRisco: number;
 };
 
 type Fase = "setup" | "rolar" | "pergunta" | "resultado" | "fim";
@@ -52,14 +64,25 @@ const PADRAO = ["Jogador 1", "Jogador 2", "Jogador 3", "Jogador 4"];
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
+const CRITICO = 25;
+const ALERTA = 30;
+
+function emCritico(j: Jogador) {
+  return Math.min(j.saude, j.dinheiro, j.familia, j.consciencia) < CRITICO;
+}
+
 function aplicar(j: Jogador, e: Efeito): Jogador {
-  return {
+  const novo: Jogador = {
     ...j,
     saude: clamp(j.saude + (e.saude ?? 0)),
     dinheiro: clamp(j.dinheiro + (e.dinheiro ?? 0)),
     familia: clamp(j.familia + (e.familia ?? 0)),
     consciencia: clamp(j.consciencia + (e.consciencia ?? 0)),
+    perdaRisco:
+      j.perdaRisco +
+      Object.values(e).reduce<number>((s, v) => s + (typeof v === "number" && v < 0 ? -v : 0), 0),
   };
+  return { ...novo, esteveCritico: novo.esteveCritico || emCritico(novo) };
 }
 
 function novoJogador(id: number, nome: string): Jogador {
@@ -73,6 +96,9 @@ function novoJogador(id: number, nome: string): Jogador {
     familia: 70,
     consciencia: 50,
     terminou: false,
+    usouApoio: false,
+    esteveCritico: false,
+    perdaRisco: 0,
   };
 }
 
@@ -87,8 +113,39 @@ function Jogo() {
   const [resultado, setResultado] = useState<{ titulo: string; texto: string; efeito: Efeito } | null>(
     null,
   );
+  const [flutuante, setFlutuante] = useState<{ id: number; efeito: Efeito; key: number } | null>(null);
+  const [modalApoio, setModalApoio] = useState<string | null>(null);
 
   const atual = jogadores[vez]!;
+
+  function mostrarDeltas(id: number, efeito: Efeito) {
+    const key = Date.now();
+    setFlutuante({ id, efeito, key });
+    setTimeout(() => setFlutuante((f) => (f && f.key === key ? null : f)), 1400);
+  }
+
+  function buscarAjuda() {
+    const menor = (["saude", "dinheiro", "familia", "consciencia"] as const).reduce((a, b) =>
+      atual[a] <= atual[b] ? a : b,
+    );
+    const efeito: Efeito = { [menor]: 30 };
+    const lista = jogadores.map((j) => {
+      if (j.id !== atual.id) return j;
+      const atualizado: Jogador = { ...j, usouApoio: true, esteveCritico: true };
+      atualizado[menor] = clamp(j[menor] + 30);
+      return atualizado;
+    });
+    setJogadores(lista);
+    mostrarDeltas(atual.id, efeito);
+    setModalApoio(
+      "Você buscou apoio na sua rede de contatos (família/profissionais). Pedir ajuda não é fraqueza: é o passo mais forte de quem quer recomeçar.",
+    );
+  }
+
+  function fecharApoio() {
+    setModalApoio(null);
+    proximoTurno(jogadores);
+  }
 
   function iniciar() {
     setJogadores(nomes.map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)));
@@ -154,6 +211,7 @@ function Jogo() {
   function responder(op: Opcao) {
     const lista = jogadores.map((j) => (j.id === atual.id ? aplicar(j, op.efeito) : j));
     setJogadores(lista);
+    mostrarDeltas(atual.id, op.efeito);
     setResultado({ titulo: "Consequência", texto: op.feedback, efeito: op.efeito });
     setFase("resultado");
   }
@@ -224,6 +282,7 @@ function Jogo() {
   }
 
   if (fase === "fim") {
+    const selos = calcularSelos(jogadores);
     return (
       <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
         <h1 className="text-4xl text-foreground">Finais da partida</h1>
@@ -243,6 +302,18 @@ function Jogo() {
                 </div>
                 <h2 className={`mt-2 text-2xl ${cor}`}>{f.titulo}</h2>
                 <p className="mt-2 text-sm text-muted-foreground">{f.descricao}</p>
+                {(selos.get(j.id) ?? []).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(selos.get(j.id) ?? []).map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <Barras j={j} />
               </div>
             );
@@ -304,7 +375,12 @@ function Jogo() {
                   </div>
                   <span className="shrink-0 font-display text-base text-muted-foreground">#{j.pos + 1}</span>
                 </div>
-                <Barras j={j} compacto />
+                <Barras
+                  j={j}
+                  compacto
+                  delta={flutuante && flutuante.id === j.id ? flutuante.efeito : undefined}
+                  deltaKey={flutuante?.key}
+                />
               </div>
             ))}
           </section>
@@ -333,6 +409,18 @@ function Jogo() {
             >
               Rolar o dado
             </button>
+            <button
+              onClick={buscarAjuda}
+              disabled={atual.usouApoio || !emCritico(atual)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground"
+            >
+              <LifeBuoy className="size-4" aria-hidden="true" />
+              Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
+            </button>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
+              atributo mais baixo.
+            </p>
           </div>
         )}
 
@@ -379,8 +467,50 @@ function Jogo() {
         )}
         </section>
       </div>
+
+      {modalApoio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+          <div className="panel w-full max-w-md p-6 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <LifeBuoy className="size-6" aria-hidden="true" />
+            </div>
+            <h2 className="mt-4 text-3xl text-foreground">Rede de apoio</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{modalApoio}</p>
+            <p className="mt-3 text-sm font-semibold text-accent">
+              +30 no seu atributo mais baixo. CVV 188 e CAPS-AD atendem de graça, 24h.
+            </p>
+            <button
+              onClick={fecharApoio}
+              className="mt-6 w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
+}
+
+function calcularSelos(jogadores: Jogador[]): Map<number, string[]> {
+  const selos = new Map<number, string[]>();
+  const add = (id: number, s: string) => selos.set(id, [...(selos.get(id) ?? []), s]);
+  if (!jogadores.length) return selos;
+
+  const menorRisco = jogadores.reduce((a, b) => (a.perdaRisco <= b.perdaRisco ? a : b));
+  add(menorRisco.id, "🛡️ Mente Blindada");
+
+  const maisFamilia = jogadores.reduce((a, b) => (a.familia >= b.familia ? a : b));
+  add(maisFamilia.id, "❤️ Pilar Familiar");
+
+  const maisConsciencia = jogadores.reduce((a, b) => (a.consciencia >= b.consciencia ? a : b));
+  add(maisConsciencia.id, "🧠 Consciência Elevada");
+
+  jogadores
+    .filter((j) => j.esteveCritico && j.usouApoio && j.terminou)
+    .forEach((j) => add(j.id, "🔥 Superação"));
+
+  return selos;
 }
 
 function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador }) {
@@ -440,24 +570,61 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
   );
 }
 
-function Barras({ j, compacto }: { j: Jogador; compacto?: boolean }) {
-  const itens: [string, number, string, typeof HeartPulse][] = [
-    ["Saúde", j.saude, "bg-success", HeartPulse],
-    ["Dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
-    ["Família", j.familia, "bg-p3", Users],
-    ["Consciência", j.consciencia, "bg-primary", Brain],
+function Barras({
+  j,
+  compacto,
+  delta,
+  deltaKey,
+}: {
+  j: Jogador;
+  compacto?: boolean;
+  delta?: Efeito | undefined;
+  deltaKey?: number | undefined;
+}) {
+  const itens: [string, keyof Efeito, number, string, typeof HeartPulse][] = [
+    ["Saúde", "saude", j.saude, "bg-success", HeartPulse],
+    ["Dinheiro", "dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
+    ["Família", "familia", j.familia, "bg-p3", Users],
+    ["Consciência", "consciencia", j.consciencia, "bg-primary", Brain],
   ];
   return (
     <div className={compacto ? "mt-2 space-y-1" : "mt-4 space-y-1.5"}>
-      {itens.map(([nome, valor, cor, Icon]) => (
-        <div key={nome} className="flex items-center gap-2">
-          <Icon className="size-3 shrink-0 text-muted-foreground" aria-label={nome} />
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className={`h-full rounded-full ${cor}`} style={{ width: `${valor}%` }} />
+      {itens.map(([nome, chave, valor, cor, Icon]) => {
+        const critico = valor < ALERTA;
+        const d = delta?.[chave] ?? 0;
+        return (
+          <div key={nome} className="relative flex items-center gap-2">
+            <Icon
+              className={`size-3 shrink-0 ${critico ? "text-destructive" : "text-muted-foreground"}`}
+              aria-label={nome}
+            />
+            <div
+              className={`h-1.5 w-full overflow-hidden rounded-full bg-muted ${critico ? "bar-critical" : ""}`}
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${critico ? "bg-destructive" : cor}`}
+                style={{ width: `${valor}%` }}
+              />
+            </div>
+            <span
+              className={`w-5 text-right text-[9px] ${critico ? "font-bold text-destructive" : "text-muted-foreground"}`}
+            >
+              {valor}
+            </span>
+            {d !== 0 && (
+              <span
+                key={`${deltaKey}-${chave}`}
+                className={`float-delta absolute right-0 -top-2 text-[11px] font-bold ${
+                  d > 0 ? "text-success" : "text-destructive"
+                }`}
+              >
+                {d > 0 ? "+" : ""}
+                {d}
+              </span>
+            )}
           </div>
-          <span className="w-5 text-right text-[9px] text-muted-foreground">{valor}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
