@@ -400,6 +400,18 @@ function Jogo() {
             >
               Rolar o dado
             </button>
+            <button
+              onClick={buscarAjuda}
+              disabled={atual.usouApoio || !emCritico(atual)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground"
+            >
+              <LifeBuoy className="size-4" aria-hidden="true" />
+              Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
+            </button>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
+              atributo mais baixo.
+            </p>
           </div>
         )}
 
