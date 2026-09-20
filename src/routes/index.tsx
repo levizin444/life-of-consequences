@@ -366,7 +366,12 @@ function Jogo() {
                   </div>
                   <span className="shrink-0 font-display text-base text-muted-foreground">#{j.pos + 1}</span>
                 </div>
-                <Barras j={j} compacto />
+                <Barras
+                  j={j}
+                  compacto
+                  delta={flutuante && flutuante.id === j.id ? flutuante.efeito : undefined}
+                  deltaKey={flutuante?.key}
+                />
               </div>
             ))}
           </section>
