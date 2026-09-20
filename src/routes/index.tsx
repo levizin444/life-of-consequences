@@ -202,6 +202,7 @@ function Jogo() {
   function responder(op: Opcao) {
     const lista = jogadores.map((j) => (j.id === atual.id ? aplicar(j, op.efeito) : j));
     setJogadores(lista);
+    mostrarDeltas(atual.id, op.efeito);
     setResultado({ titulo: "Consequência", texto: op.feedback, efeito: op.efeito });
     setFase("resultado");
   }
