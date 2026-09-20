@@ -467,8 +467,50 @@ function Jogo() {
         )}
         </section>
       </div>
+
+      {modalApoio && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
+          <div className="panel w-full max-w-md p-6 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <LifeBuoy className="size-6" aria-hidden="true" />
+            </div>
+            <h2 className="mt-4 text-3xl text-foreground">Rede de apoio</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{modalApoio}</p>
+            <p className="mt-3 text-sm font-semibold text-accent">
+              +30 no seu atributo mais baixo. CVV 188 e CAPS-AD atendem de graça, 24h.
+            </p>
+            <button
+              onClick={fecharApoio}
+              className="mt-6 w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
+}
+
+function calcularSelos(jogadores: Jogador[]): Map<number, string[]> {
+  const selos = new Map<number, string[]>();
+  const add = (id: number, s: string) => selos.set(id, [...(selos.get(id) ?? []), s]);
+  if (!jogadores.length) return selos;
+
+  const menorRisco = jogadores.reduce((a, b) => (a.perdaRisco <= b.perdaRisco ? a : b));
+  add(menorRisco.id, "🛡️ Mente Blindada");
+
+  const maisFamilia = jogadores.reduce((a, b) => (a.familia >= b.familia ? a : b));
+  add(maisFamilia.id, "❤️ Pilar Familiar");
+
+  const maisConsciencia = jogadores.reduce((a, b) => (a.consciencia >= b.consciencia ? a : b));
+  add(maisConsciencia.id, "🧠 Consciência Elevada");
+
+  jogadores
+    .filter((j) => j.esteveCritico && j.usouApoio && j.terminou)
+    .forEach((j) => add(j.id, "🔥 Superação"));
+
+  return selos;
 }
 
 function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador }) {
