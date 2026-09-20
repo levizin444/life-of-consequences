@@ -87,6 +87,9 @@ function novoJogador(id: number, nome: string): Jogador {
     familia: 70,
     consciencia: 50,
     terminou: false,
+    usouApoio: false,
+    esteveCritico: false,
+    perdaRisco: 0,
   };
 }
 
