@@ -120,16 +120,12 @@ function Jogo() {
       atual[a] <= atual[b] ? a : b,
     );
     const efeito: Efeito = { [menor]: 30 };
-    const lista = jogadores.map((j) =>
-      j.id === atual.id
-        ? {
-            ...j,
-            [menor]: clamp(j[menor] + 30),
-            usouApoio: true,
-            esteveCritico: true,
-          }
-        : j,
-    );
+    const lista = jogadores.map((j) => {
+      if (j.id !== atual.id) return j;
+      const atualizado: Jogador = { ...j, usouApoio: true, esteveCritico: true };
+      atualizado[menor] = clamp(j[menor] + 30);
+      return atualizado;
+    });
     setJogadores(lista);
     mostrarDeltas(atual.id, efeito);
     setModalApoio(
