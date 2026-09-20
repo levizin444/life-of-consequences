@@ -55,14 +55,25 @@ const PADRAO = ["Jogador 1", "Jogador 2", "Jogador 3", "Jogador 4"];
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 
+const CRITICO = 25;
+const ALERTA = 30;
+
+function emCritico(j: Jogador) {
+  return Math.min(j.saude, j.dinheiro, j.familia, j.consciencia) < CRITICO;
+}
+
 function aplicar(j: Jogador, e: Efeito): Jogador {
-  return {
+  const novo: Jogador = {
     ...j,
     saude: clamp(j.saude + (e.saude ?? 0)),
     dinheiro: clamp(j.dinheiro + (e.dinheiro ?? 0)),
     familia: clamp(j.familia + (e.familia ?? 0)),
     consciencia: clamp(j.consciencia + (e.consciencia ?? 0)),
+    perdaRisco:
+      j.perdaRisco +
+      Object.values(e).reduce<number>((s, v) => s + (typeof v === "number" && v < 0 ? -v : 0), 0),
   };
+  return { ...novo, esteveCritico: novo.esteveCritico || emCritico(novo) };
 }
 
 function novoJogador(id: number, nome: string): Jogador {
