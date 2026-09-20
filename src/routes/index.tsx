@@ -578,8 +578,8 @@ function Barras({
 }: {
   j: Jogador;
   compacto?: boolean;
-  delta?: Efeito;
-  deltaKey?: number;
+  delta?: Efeito | undefined;
+  deltaKey?: number | undefined;
 }) {
   const itens: [string, keyof Efeito, number, string, typeof HeartPulse][] = [
     ["Saúde", "saude", j.saude, "bg-success", HeartPulse],
