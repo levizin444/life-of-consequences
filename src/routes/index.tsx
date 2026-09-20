@@ -293,6 +293,18 @@ function Jogo() {
                 </div>
                 <h2 className={`mt-2 text-2xl ${cor}`}>{f.titulo}</h2>
                 <p className="mt-2 text-sm text-muted-foreground">{f.descricao}</p>
+                {(selos.get(j.id) ?? []).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(selos.get(j.id) ?? []).map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <Barras j={j} />
               </div>
             );
