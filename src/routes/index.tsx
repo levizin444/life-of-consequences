@@ -273,6 +273,7 @@ function Jogo() {
   }
 
   if (fase === "fim") {
+    const selos = calcularSelos(jogadores);
     return (
       <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
         <h1 className="text-4xl text-foreground">Finais da partida</h1>
