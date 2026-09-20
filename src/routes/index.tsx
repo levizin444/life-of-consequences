@@ -570,24 +570,61 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
   );
 }
 
-function Barras({ j, compacto }: { j: Jogador; compacto?: boolean }) {
-  const itens: [string, number, string, typeof HeartPulse][] = [
-    ["Saúde", j.saude, "bg-success", HeartPulse],
-    ["Dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
-    ["Família", j.familia, "bg-p3", Users],
-    ["Consciência", j.consciencia, "bg-primary", Brain],
+function Barras({
+  j,
+  compacto,
+  delta,
+  deltaKey,
+}: {
+  j: Jogador;
+  compacto?: boolean;
+  delta?: Efeito;
+  deltaKey?: number;
+}) {
+  const itens: [string, keyof Efeito, number, string, typeof HeartPulse][] = [
+    ["Saúde", "saude", j.saude, "bg-success", HeartPulse],
+    ["Dinheiro", "dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
+    ["Família", "familia", j.familia, "bg-p3", Users],
+    ["Consciência", "consciencia", j.consciencia, "bg-primary", Brain],
   ];
   return (
     <div className={compacto ? "mt-2 space-y-1" : "mt-4 space-y-1.5"}>
-      {itens.map(([nome, valor, cor, Icon]) => (
-        <div key={nome} className="flex items-center gap-2">
-          <Icon className="size-3 shrink-0 text-muted-foreground" aria-label={nome} />
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className={`h-full rounded-full ${cor}`} style={{ width: `${valor}%` }} />
+      {itens.map(([nome, chave, valor, cor, Icon]) => {
+        const critico = valor < ALERTA;
+        const d = delta?.[chave] ?? 0;
+        return (
+          <div key={nome} className="relative flex items-center gap-2">
+            <Icon
+              className={`size-3 shrink-0 ${critico ? "text-destructive" : "text-muted-foreground"}`}
+              aria-label={nome}
+            />
+            <div
+              className={`h-1.5 w-full overflow-hidden rounded-full bg-muted ${critico ? "bar-critical" : ""}`}
+            >
+              <div
+                className={`h-full rounded-full transition-[width] duration-500 ${critico ? "bg-destructive" : cor}`}
+                style={{ width: `${valor}%` }}
+              />
+            </div>
+            <span
+              className={`w-5 text-right text-[9px] ${critico ? "font-bold text-destructive" : "text-muted-foreground"}`}
+            >
+              {valor}
+            </span>
+            {d !== 0 && (
+              <span
+                key={`${deltaKey}-${chave}`}
+                className={`float-delta absolute right-0 -top-2 text-[11px] font-bold ${
+                  d > 0 ? "text-success" : "text-destructive"
+                }`}
+              >
+                {d > 0 ? "+" : ""}
+                {d}
+              </span>
+            )}
           </div>
-          <span className="w-5 text-right text-[9px] text-muted-foreground">{valor}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
