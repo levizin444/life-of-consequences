@@ -56,7 +56,7 @@ type Jogador = {
   perdaRisco: number;
 };
 
-type Fase = "setup" | "rolar" | "rolando" | "pergunta" | "resultado" | "fim";
+type Fase = "setup" | "rolar" | "rolando" | "movendo" | "pergunta" | "resultado" | "fim";
 
 const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
 const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
@@ -118,6 +118,7 @@ function Jogo() {
   const [modalApoio, setModalApoio] = useState<string | null>(null);
   const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const esperaDado = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const esperasMovimento = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const atual = jogadores[vez]!;
 
@@ -125,6 +126,7 @@ function Jogo() {
     return () => {
       if (intervaloDado.current) clearInterval(intervaloDado.current);
       if (esperaDado.current) clearTimeout(esperaDado.current);
+      esperasMovimento.current.forEach(clearTimeout);
     };
   }, []);
 
@@ -191,12 +193,7 @@ function Jogo() {
     setFase("rolar");
   }
 
-  function concluirRolagem(valor: number) {
-    setDado(valor);
-    const destino = Math.min(atual.pos + valor, TABULEIRO.length - 1);
-    const lista = jogadores.map((j) => (j.id === atual.id ? { ...j, pos: destino } : j));
-    setJogadores(lista);
-
+  function concluirMovimento(destino: number, lista: Jogador[]) {
     const casa = TABULEIRO[destino]!;
 
     if (casa.tipo === "pergunta") {
@@ -217,6 +214,35 @@ function Jogo() {
     }
     setResultado({ titulo: "Início", texto: "Você continua no ponto de partida.", efeito: {} });
     setFase("resultado");
+  }
+
+  function concluirRolagem(valor: number) {
+    setDado(valor);
+    setFase("movendo");
+    const origem = atual.pos;
+    const destino = Math.min(origem + valor, TABULEIRO.length - 1);
+    const passos = destino - origem;
+
+    esperasMovimento.current.forEach(clearTimeout);
+    esperasMovimento.current = [];
+
+    for (let passo = 1; passo <= passos; passo += 1) {
+      const novaPosicao = origem + passo;
+      const espera = setTimeout(() => {
+        setJogadores((listaAtual) =>
+          listaAtual.map((j) => (j.id === atual.id ? { ...j, pos: novaPosicao } : j)),
+        );
+      }, passo * 320);
+      esperasMovimento.current.push(espera);
+    }
+
+    const esperaFinal = setTimeout(() => {
+      const lista = jogadores.map((j) => (j.id === atual.id ? { ...j, pos: destino } : j));
+      setJogadores(lista);
+      concluirMovimento(destino, lista);
+      esperasMovimento.current = [];
+    }, passos * 320 + 420);
+    esperasMovimento.current.push(esperaFinal);
   }
 
   function rolar() {
@@ -481,6 +507,15 @@ function Jogo() {
           </div>
         )}
 
+        {fase === "movendo" && dado && (
+          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
+            <DiceFace valor={dado} />
+            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
+            <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
+          </div>
+        )}
+
         {fase === "pergunta" && pergunta && (
           <div className="flex flex-1 flex-col">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -587,7 +622,7 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
   }, []);
 
   return (
-    <section className="board-panel flex min-h-[440px] flex-1 flex-col p-3 md:min-h-0 md:p-4" aria-label="Mapa do jogo">
+    <section className="board-panel flex min-h-[460px] flex-1 flex-col p-3 md:min-h-[480px] md:p-4 xl:min-h-[520px]" aria-label="Mapa do jogo">
       <div className="mb-3 flex items-end justify-between px-1">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">O caminho das escolhas</p>
@@ -597,10 +632,13 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
           <Users className="size-4" /> {jogadores.length} jogadores
         </div>
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-4 gap-2">
+      <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-4 gap-3">
       {casasVisuais.map(({ casa, indice: i }) => {
         const aqui = porCasa.get(i) ?? [];
         const tom = casa.tipo === "final" ? "border-accent/60 bg-accent/10" : casa.tipo === "inicio" ? "border-border bg-muted" : "border-border bg-secondary";
+        const linha = Math.floor(i / 5);
+        const fimDaLinha = i % 5 === 4;
+        const direcao = linha % 2 === 0 ? "direita" : "esquerda";
         return (
           <div
             key={i}
@@ -608,13 +646,21 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
               atual.pos === i ? "board-space-active" : ""
             }`}
           >
+            {i < TABULEIRO.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={`board-connector ${
+                  fimDaLinha ? (direcao === "direita" ? "board-connector-down-right" : "board-connector-down-left") : direcao === "direita" ? "board-connector-right" : "board-connector-left"
+                }`}
+              />
+            )}
             <div className="flex items-start justify-between gap-1">
               <span className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">{casa.rotulo}</span>
               <span className="font-display text-base leading-none text-border">{String(i + 1).padStart(2, "0")}</span>
             </div>
             <div className="flex flex-wrap items-center gap-1">
               {aqui.map((j) => (
-                <span key={j.id} className={`player-token size-4 rounded-full border-2 border-background ${j.cor}`} title={j.nome} />
+                <span key={`${j.id}-${j.pos}`} className={`player-token player-token-hop size-4 rounded-full border-2 border-background ${j.cor}`} title={j.nome} />
               ))}
               {casa.tipo === "inicio" && !aqui.length ? <Home className="size-4 text-muted-foreground" /> : null}
               {casa.tipo === "final" ? <ShieldCheck className="ml-auto size-4 text-accent" /> : null}
