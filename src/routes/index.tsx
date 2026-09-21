@@ -18,6 +18,9 @@ import {
   type Opcao,
   type Pergunta,
 } from "@/lib/game-data";
+import somDado from "@/assets/dado-rolando.mp3.asset.json";
+
+const DURACAO_DADO = 1900;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -119,6 +122,40 @@ function Jogo() {
   const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const esperaDado = useRef<ReturnType<typeof setTimeout> | null>(null);
   const esperasMovimento = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const audioDado = useRef<HTMLAudioElement | null>(null);
+  const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function tocarSomDado() {
+    if (typeof Audio === "undefined") return;
+    if (!audioDado.current) audioDado.current = new Audio(somDado.url);
+    const a = audioDado.current;
+    if (fadeDado.current) {
+      clearInterval(fadeDado.current);
+      fadeDado.current = null;
+    }
+    a.pause();
+    a.currentTime = 0;
+    a.volume = 1;
+    void a.play().catch(() => undefined);
+  }
+
+  function pararSomDado() {
+    const a = audioDado.current;
+    if (!a) return;
+    if (fadeDado.current) clearInterval(fadeDado.current);
+    fadeDado.current = setInterval(() => {
+      const v = a.volume - 0.15;
+      if (v <= 0) {
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 1;
+        if (fadeDado.current) clearInterval(fadeDado.current);
+        fadeDado.current = null;
+      } else {
+        a.volume = v;
+      }
+    }, 25);
+  }
 
   const atual = jogadores[vez]!;
 
@@ -127,6 +164,8 @@ function Jogo() {
       if (intervaloDado.current) clearInterval(intervaloDado.current);
       if (esperaDado.current) clearTimeout(esperaDado.current);
       esperasMovimento.current.forEach(clearTimeout);
+      if (fadeDado.current) clearInterval(fadeDado.current);
+      audioDado.current?.pause();
     };
   }, []);
 
@@ -250,6 +289,7 @@ function Jogo() {
     const valorFinal = 1 + Math.floor(Math.random() * 6);
     setFase("rolando");
     setDado(1 + Math.floor(Math.random() * 6));
+    tocarSomDado();
 
     intervaloDado.current = setInterval(() => {
       setDado(1 + Math.floor(Math.random() * 6));
@@ -258,8 +298,9 @@ function Jogo() {
     esperaDado.current = setTimeout(() => {
       if (intervaloDado.current) clearInterval(intervaloDado.current);
       intervaloDado.current = null;
+      pararSomDado();
       concluirRolagem(valorFinal);
-    }, 1100);
+    }, DURACAO_DADO);
   }
 
   function responder(op: Opcao) {
