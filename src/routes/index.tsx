@@ -507,6 +507,15 @@ function Jogo() {
           </div>
         )}
 
+        {fase === "movendo" && dado && (
+          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
+            <DiceFace valor={dado} />
+            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
+            <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
+          </div>
+        )}
+
         {fase === "pergunta" && pergunta && (
           <div className="flex flex-1 flex-col">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
@@ -738,15 +747,6 @@ function Barras({
                 {d}
               </span>
             )}
-
-        {fase === "movendo" && dado && (
-          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
-            <DiceFace valor={dado} />
-            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
-            <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
-          </div>
-        )}
           </div>
         );
       })}
