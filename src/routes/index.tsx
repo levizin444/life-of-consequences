@@ -289,6 +289,7 @@ function Jogo() {
     const valorFinal = 1 + Math.floor(Math.random() * 6);
     setFase("rolando");
     setDado(1 + Math.floor(Math.random() * 6));
+    tocarSomDado();
 
     intervaloDado.current = setInterval(() => {
       setDado(1 + Math.floor(Math.random() * 6));
@@ -297,8 +298,9 @@ function Jogo() {
     esperaDado.current = setTimeout(() => {
       if (intervaloDado.current) clearInterval(intervaloDado.current);
       intervaloDado.current = null;
+      pararSomDado();
       concluirRolagem(valorFinal);
-    }, 1100);
+    }, DURACAO_DADO);
   }
 
   function responder(op: Opcao) {
