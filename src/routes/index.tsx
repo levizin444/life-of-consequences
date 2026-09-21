@@ -164,6 +164,8 @@ function Jogo() {
       if (intervaloDado.current) clearInterval(intervaloDado.current);
       if (esperaDado.current) clearTimeout(esperaDado.current);
       esperasMovimento.current.forEach(clearTimeout);
+      if (fadeDado.current) clearInterval(fadeDado.current);
+      audioDado.current?.pause();
     };
   }, []);
 
