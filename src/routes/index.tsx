@@ -636,7 +636,7 @@ function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador 
       {casasVisuais.map(({ casa, indice: i }) => {
         const aqui = porCasa.get(i) ?? [];
         const tom = casa.tipo === "final" ? "border-accent/60 bg-accent/10" : casa.tipo === "inicio" ? "border-border bg-muted" : "border-border bg-secondary";
-        const linha = Math.floor(visualIndex / 5);
+        const linha = Math.floor(i / 5);
         const fimDaLinha = i % 5 === 4;
         const direcao = linha % 2 === 0 ? "direita" : "esquerda";
         return (
