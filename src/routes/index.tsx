@@ -18,6 +18,9 @@ import {
   type Opcao,
   type Pergunta,
 } from "@/lib/game-data";
+import somDado from "@/assets/dado-rolando.mp3.asset.json";
+
+const DURACAO_DADO = 1900;
 
 export const Route = createFileRoute("/")({
   head: () => ({
