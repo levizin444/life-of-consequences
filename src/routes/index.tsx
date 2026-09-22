@@ -616,7 +616,12 @@ function Jogo() {
                 <button
                   key={op.texto}
                   onClick={() => responder(op)}
-                  className="answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border border-border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted"
+                  onMouseEnter={() => setFoco(index)}
+                  className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
+                    controleConectado && foco === index
+                      ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
+                      : "border-border"
+                  }`}
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
                     {String.fromCharCode(65 + index)}
