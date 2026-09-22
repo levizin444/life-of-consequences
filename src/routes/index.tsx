@@ -540,6 +540,11 @@ function Jogo() {
         </div>
 
         <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
+          {controleConectado && (
+            <div className="mb-3 flex items-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent">
+              🎮 Controle conectado — pressione [A] para jogar
+            </div>
+          )}
           <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
