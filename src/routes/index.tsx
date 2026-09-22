@@ -126,6 +126,16 @@ function Jogo() {
   const esperasMovimento = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioDado = useRef<HTMLAudioElement | null>(null);
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioPasso = useRef<HTMLAudioElement | null>(null);
+  const [foco, setFoco] = useState(0);
+
+  function tocarSomPasso() {
+    if (typeof Audio === "undefined") return;
+    if (!audioPasso.current) audioPasso.current = new Audio(somPasso.url);
+    const a = audioPasso.current.cloneNode() as HTMLAudioElement;
+    a.volume = 0.8;
+    void a.play().catch(() => undefined);
+  }
 
   function tocarSomDado() {
     if (typeof Audio === "undefined") return;
@@ -270,6 +280,7 @@ function Jogo() {
     for (let passo = 1; passo <= passos; passo += 1) {
       const novaPosicao = origem + passo;
       const espera = setTimeout(() => {
+        tocarSomPasso();
         setJogadores((listaAtual) =>
           listaAtual.map((j) => (j.id === atual.id ? { ...j, pos: novaPosicao } : j)),
         );
