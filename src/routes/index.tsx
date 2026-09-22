@@ -19,6 +19,8 @@ import {
   type Pergunta,
 } from "@/lib/game-data";
 import somDado from "@/assets/dado-rolando.mp3.asset.json";
+import somPasso from "@/assets/passo-peca.mp3.asset.json";
+import { useGamepad } from "@/hooks/use-gamepad";
 
 const DURACAO_DADO = 1900;
 
@@ -124,6 +126,16 @@ function Jogo() {
   const esperasMovimento = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioDado = useRef<HTMLAudioElement | null>(null);
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioPasso = useRef<HTMLAudioElement | null>(null);
+  const [foco, setFoco] = useState(0);
+
+  function tocarSomPasso() {
+    if (typeof Audio === "undefined") return;
+    if (!audioPasso.current) audioPasso.current = new Audio(somPasso.url);
+    const a = audioPasso.current.cloneNode() as HTMLAudioElement;
+    a.volume = 0.8;
+    void a.play().catch(() => undefined);
+  }
 
   function tocarSomDado() {
     if (typeof Audio === "undefined") return;
@@ -268,6 +280,7 @@ function Jogo() {
     for (let passo = 1; passo <= passos; passo += 1) {
       const novaPosicao = origem + passo;
       const espera = setTimeout(() => {
+        tocarSomPasso();
         setJogadores((listaAtual) =>
           listaAtual.map((j) => (j.id === atual.id ? { ...j, pos: novaPosicao } : j)),
         );
@@ -321,6 +334,33 @@ function Jogo() {
     setNomes(["", "", "", ""]);
     setQuantidade(4);
   }
+
+  useEffect(() => {
+    setFoco(0);
+  }, [fase, vez, pergunta]);
+
+  const controleConectado = useGamepad({
+    onConfirm: () => {
+      if (modalApoio) {
+        fecharApoio();
+        return;
+      }
+      if (fase === "rolar") rolar();
+      else if (fase === "pergunta" && pergunta) {
+        const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
+        if (op) responder(op);
+      } else if (fase === "resultado") continuar();
+      else if (fase === "fim") reiniciar();
+      else if (fase === "setup") iniciar();
+    },
+    onMove: (direcao) => {
+      if (fase !== "pergunta" || !pergunta) return;
+      const total = pergunta.opcoes.length;
+      const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
+      setFoco((f) => (f + passo + total) % total);
+    },
+  });
+
 
   if (fase === "setup") {
     return (
@@ -500,6 +540,11 @@ function Jogo() {
         </div>
 
         <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
+          {controleConectado && (
+            <div className="mb-3 flex items-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent">
+              🎮 Controle conectado — pressione [A] para jogar
+            </div>
+          )}
           <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
@@ -518,7 +563,9 @@ function Jogo() {
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
             <button
               onClick={rolar}
-              className="mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
+              className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
+                controleConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
+              }`}
             >
               Rolar o dado
             </button>
@@ -569,7 +616,12 @@ function Jogo() {
                 <button
                   key={op.texto}
                   onClick={() => responder(op)}
-                  className="answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border border-border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted"
+                  onMouseEnter={() => setFoco(index)}
+                  className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
+                    controleConectado && foco === index
+                      ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
+                      : "border-border"
+                  }`}
                 >
                   <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
                     {String.fromCharCode(65 + index)}
