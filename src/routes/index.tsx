@@ -335,6 +335,33 @@ function Jogo() {
     setQuantidade(4);
   }
 
+  useEffect(() => {
+    setFoco(0);
+  }, [fase, vez, pergunta]);
+
+  const controleConectado = useGamepad({
+    onConfirm: () => {
+      if (modalApoio) {
+        fecharApoio();
+        return;
+      }
+      if (fase === "rolar") rolar();
+      else if (fase === "pergunta" && pergunta) {
+        const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
+        if (op) responder(op);
+      } else if (fase === "resultado") continuar();
+      else if (fase === "fim") reiniciar();
+      else if (fase === "setup") iniciar();
+    },
+    onMove: (direcao) => {
+      if (fase !== "pergunta" || !pergunta) return;
+      const total = pergunta.opcoes.length;
+      const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
+      setFoco((f) => (f + passo + total) % total);
+    },
+  });
+
+
   if (fase === "setup") {
     return (
       <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
