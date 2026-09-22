@@ -19,6 +19,8 @@ import {
   type Pergunta,
 } from "@/lib/game-data";
 import somDado from "@/assets/dado-rolando.mp3.asset.json";
+import somPasso from "@/assets/passo-peca.mp3.asset.json";
+import { useGamepad } from "@/hooks/use-gamepad";
 
 const DURACAO_DADO = 1900;
 
