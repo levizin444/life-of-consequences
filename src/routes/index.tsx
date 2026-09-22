@@ -563,7 +563,9 @@ function Jogo() {
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
             <button
               onClick={rolar}
-              className="mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
+              className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
+                controleConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
+              }`}
             >
               Rolar o dado
             </button>
