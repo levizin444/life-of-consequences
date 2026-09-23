@@ -5,22 +5,27 @@ type Direcao = "cima" | "baixo" | "esquerda" | "direita";
 type Opcoes = {
   onConfirm: () => void;
   onMove: (direcao: Direcao) => void;
+  onAjuda?: () => void;
+  onForcaDown?: () => void;
+  onForcaUp?: () => void;
 };
 
 const BOTOES_CONFIRMA = [0, 9]; // A / X e Start
 const EIXO_LIMITE = 0.6;
 const REPETICAO = 220;
 
-export function useGamepad({ onConfirm, onMove }: Opcoes) {
+export function useGamepad(opcoes: Opcoes) {
   const [conectado, setConectado] = useState(false);
-  const acoes = useRef<Opcoes>({ onConfirm, onMove });
-  acoes.current = { onConfirm, onMove };
+  const acoes = useRef<Opcoes>(opcoes);
+  acoes.current = opcoes;
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("getGamepads" in navigator)) return;
 
     let frame = 0;
     let confirmaAnterior = false;
+    let ajudaAnterior = false;
+    let forcaAnterior = false;
     let ultimoMovimento = 0;
     let direcaoAnterior: Direcao | null = null;
 
@@ -36,10 +41,14 @@ export function useGamepad({ onConfirm, onMove }: Opcoes) {
       setConectado(pads.length > 0);
 
       let confirma = false;
+      let ajuda = false;
+      let forca = false;
       let direcao: Direcao | null = null;
 
       for (const pad of pads) {
         if (BOTOES_CONFIRMA.some((i) => pad.buttons[i]?.pressed)) confirma = true;
+        if (pad.buttons[3]?.pressed) ajuda = true;
+        if (pad.buttons[2]?.pressed) forca = true;
         if (pad.buttons[12]?.pressed) direcao = "cima";
         else if (pad.buttons[13]?.pressed) direcao = "baixo";
         else if (pad.buttons[14]?.pressed) direcao = "esquerda";
@@ -57,6 +66,13 @@ export function useGamepad({ onConfirm, onMove }: Opcoes) {
 
       if (confirma && !confirmaAnterior) acoes.current.onConfirm();
       confirmaAnterior = confirma;
+
+      if (ajuda && !ajudaAnterior) acoes.current.onAjuda?.();
+      ajudaAnterior = ajuda;
+
+      if (forca && !forcaAnterior) acoes.current.onForcaDown?.();
+      if (!forca && forcaAnterior) acoes.current.onForcaUp?.();
+      forcaAnterior = forca;
 
       const agora = performance.now();
       if (direcao && (direcao !== direcaoAnterior || agora - ultimoMovimento > REPETICAO)) {

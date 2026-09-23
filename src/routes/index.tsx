@@ -61,7 +61,15 @@ type Jogador = {
   perdaRisco: number;
 };
 
-type Fase = "setup" | "rolar" | "rolando" | "movendo" | "pergunta" | "resultado" | "fim";
+type Fase =
+  | "setup"
+  | "rolar"
+  | "arremesso"
+  | "rolando"
+  | "movendo"
+  | "pergunta"
+  | "resultado"
+  | "fim";
 
 const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
 const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
@@ -128,6 +136,8 @@ function Jogo() {
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioPasso = useRef<HTMLAudioElement | null>(null);
   const [foco, setFoco] = useState(0);
+  const [forca, setForca] = useState(0);
+  const [segurando, setSegurando] = useState(false);
 
   function tocarSomPasso() {
     if (typeof Audio === "undefined") return;
@@ -297,8 +307,23 @@ function Jogo() {
     esperasMovimento.current.push(esperaFinal);
   }
 
-  function rolar() {
+  function abrirArremesso() {
     if (fase !== "rolar") return;
+    setForca(0);
+    setSegurando(false);
+    setFase("arremesso");
+  }
+
+  function soltarForca() {
+    if (fase !== "arremesso" || !segurando) return;
+    setSegurando(false);
+    rolar();
+  }
+
+  const ajudaDisponivel = Boolean(atual) && !atual.usouApoio && emCritico(atual);
+
+  function rolar() {
+    if (fase !== "rolar" && fase !== "arremesso") return;
     const valorFinal = 1 + Math.floor(Math.random() * 6);
     setFase("rolando");
     setDado(1 + Math.floor(Math.random() * 6));
@@ -339,13 +364,47 @@ function Jogo() {
     setFoco(0);
   }, [fase, vez, pergunta]);
 
+  useEffect(() => {
+    if (fase !== "arremesso" || !segurando) return;
+    let frame = 0;
+    const inicio = performance.now();
+    const loop = () => {
+      const t = (performance.now() - inicio) / 900;
+      const valor = Math.abs(Math.sin(t * Math.PI)) * 100;
+      setForca(Math.round(valor));
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [fase, segurando]);
+
+  useEffect(() => {
+    if (fase !== "arremesso") return;
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat) return;
+      e.preventDefault();
+      setSegurando(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      e.preventDefault();
+      soltarForca();
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, [fase, segurando]);
+
   const controleConectado = useGamepad({
     onConfirm: () => {
       if (modalApoio) {
         fecharApoio();
         return;
       }
-      if (fase === "rolar") rolar();
+      if (fase === "rolar") abrirArremesso();
       else if (fase === "pergunta" && pergunta) {
         const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
         if (op) responder(op);
@@ -358,6 +417,16 @@ function Jogo() {
       const total = pergunta.opcoes.length;
       const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
       setFoco((f) => (f + passo + total) % total);
+    },
+    onAjuda: () => {
+      if (modalApoio || fase !== "rolar" || !ajudaDisponivel) return;
+      buscarAjuda();
+    },
+    onForcaDown: () => {
+      if (fase === "arremesso") setSegurando(true);
+    },
+    onForcaUp: () => {
+      soltarForca();
     },
   });
 
@@ -562,7 +631,7 @@ function Jogo() {
             <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
             <button
-              onClick={rolar}
+              onClick={abrirArremesso}
               className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
                 controleConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
               }`}
@@ -571,11 +640,18 @@ function Jogo() {
             </button>
             <button
               onClick={buscarAjuda}
-              disabled={atual.usouApoio || !emCritico(atual)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground"
+              disabled={!ajudaDisponivel}
+              className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-60 ${
+                ajudaDisponivel
+                  ? "border-accent bg-accent/15 text-accent ring-2 ring-accent/60 hover:bg-accent/25"
+                  : "border-accent/60 bg-accent/10 text-accent"
+              }`}
             >
               <LifeBuoy className="size-4" aria-hidden="true" />
               Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
+              <span className="rounded border border-current px-1.5 py-0.5 font-display text-xs tracking-widest">
+                Y / △
+              </span>
             </button>
             <p className="mt-2 text-[11px] text-muted-foreground">
               Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
@@ -652,6 +728,43 @@ function Jogo() {
         )}
         </section>
       </div>
+
+      {fase === "arremesso" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-4">
+          <div className="panel w-full max-w-md p-6 text-center">
+            <Dices className="mx-auto size-12 text-primary" aria-hidden="true" />
+            <h2 className="mt-4 text-3xl text-foreground">Lançar o dado</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Segure <span className="font-semibold text-primary">[ X / ◽ ]</span> (ou a barra de
+              espaço / o botão abaixo) para carregar a força e solte para rolar!
+            </p>
+
+            <div className="mt-6 h-6 w-full overflow-hidden rounded-full border border-border bg-secondary">
+              <div
+                className="h-full rounded-full transition-[width] duration-75"
+                style={{
+                  width: `${forca}%`,
+                  background:
+                    "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
+                }}
+              />
+            </div>
+            <p className="mt-2 font-display text-2xl text-primary">{forca}%</p>
+
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                setSegurando(true);
+              }}
+              onPointerUp={() => soltarForca()}
+              onPointerLeave={() => soltarForca()}
+              className="mt-5 w-full select-none rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
+            >
+              {segurando ? "Solte para lançar!" : "Segure para carregar"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalApoio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
