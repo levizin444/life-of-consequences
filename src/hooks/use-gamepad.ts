@@ -41,10 +41,14 @@ export function useGamepad(opcoes: Opcoes) {
       setConectado(pads.length > 0);
 
       let confirma = false;
+      let ajuda = false;
+      let forca = false;
       let direcao: Direcao | null = null;
 
       for (const pad of pads) {
         if (BOTOES_CONFIRMA.some((i) => pad.buttons[i]?.pressed)) confirma = true;
+        if (pad.buttons[3]?.pressed) ajuda = true;
+        if (pad.buttons[2]?.pressed) forca = true;
         if (pad.buttons[12]?.pressed) direcao = "cima";
         else if (pad.buttons[13]?.pressed) direcao = "baixo";
         else if (pad.buttons[14]?.pressed) direcao = "esquerda";
