@@ -67,6 +67,13 @@ export function useGamepad(opcoes: Opcoes) {
       if (confirma && !confirmaAnterior) acoes.current.onConfirm();
       confirmaAnterior = confirma;
 
+      if (ajuda && !ajudaAnterior) acoes.current.onAjuda?.();
+      ajudaAnterior = ajuda;
+
+      if (forca && !forcaAnterior) acoes.current.onForcaDown?.();
+      if (!forca && forcaAnterior) acoes.current.onForcaUp?.();
+      forcaAnterior = forca;
+
       const agora = performance.now();
       if (direcao && (direcao !== direcaoAnterior || agora - ultimoMovimento > REPETICAO)) {
         acoes.current.onMove(direcao);
