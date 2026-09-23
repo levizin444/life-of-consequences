@@ -649,6 +649,9 @@ function Jogo() {
             >
               <LifeBuoy className="size-4" aria-hidden="true" />
               Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
+              <span className="rounded border border-current px-1.5 py-0.5 font-display text-xs tracking-widest">
+                Y / △
+              </span>
             </button>
             <p className="mt-2 text-[11px] text-muted-foreground">
               Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
