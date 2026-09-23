@@ -307,8 +307,23 @@ function Jogo() {
     esperasMovimento.current.push(esperaFinal);
   }
 
-  function rolar() {
+  function abrirArremesso() {
     if (fase !== "rolar") return;
+    setForca(0);
+    setSegurando(false);
+    setFase("arremesso");
+  }
+
+  function soltarForca() {
+    if (fase !== "arremesso" || !segurando) return;
+    setSegurando(false);
+    rolar();
+  }
+
+  const ajudaDisponivel = Boolean(atual) && !atual.usouApoio && emCritico(atual);
+
+  function rolar() {
+    if (fase !== "rolar" && fase !== "arremesso") return;
     const valorFinal = 1 + Math.floor(Math.random() * 6);
     setFase("rolando");
     setDado(1 + Math.floor(Math.random() * 6));
