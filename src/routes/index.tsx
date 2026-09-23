@@ -631,7 +631,7 @@ function Jogo() {
             <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
             <button
-              onClick={rolar}
+              onClick={abrirArremesso}
               className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
                 controleConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
               }`}
@@ -640,8 +640,12 @@ function Jogo() {
             </button>
             <button
               onClick={buscarAjuda}
-              disabled={atual.usouApoio || !emCritico(atual)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground"
+              disabled={!ajudaDisponivel}
+              className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-60 ${
+                ajudaDisponivel
+                  ? "border-accent bg-accent/15 text-accent ring-2 ring-accent/60 hover:bg-accent/25"
+                  : "border-accent/60 bg-accent/10 text-accent"
+              }`}
             >
               <LifeBuoy className="size-4" aria-hidden="true" />
               Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
