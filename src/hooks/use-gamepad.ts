@@ -5,6 +5,9 @@ type Direcao = "cima" | "baixo" | "esquerda" | "direita";
 type Opcoes = {
   onConfirm: () => void;
   onMove: (direcao: Direcao) => void;
+  onAjuda?: () => void;
+  onForcaDown?: () => void;
+  onForcaUp?: () => void;
 };
 
 const BOTOES_CONFIRMA = [0, 9]; // A / X e Start
