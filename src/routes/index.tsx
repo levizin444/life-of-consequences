@@ -61,7 +61,15 @@ type Jogador = {
   perdaRisco: number;
 };
 
-type Fase = "setup" | "rolar" | "rolando" | "movendo" | "pergunta" | "resultado" | "fim";
+type Fase =
+  | "setup"
+  | "rolar"
+  | "arremesso"
+  | "rolando"
+  | "movendo"
+  | "pergunta"
+  | "resultado"
+  | "fim";
 
 const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
 const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
