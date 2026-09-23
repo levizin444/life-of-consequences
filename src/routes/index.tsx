@@ -136,6 +136,8 @@ function Jogo() {
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioPasso = useRef<HTMLAudioElement | null>(null);
   const [foco, setFoco] = useState(0);
+  const [forca, setForca] = useState(0);
+  const [segurando, setSegurando] = useState(false);
 
   function tocarSomPasso() {
     if (typeof Audio === "undefined") return;
