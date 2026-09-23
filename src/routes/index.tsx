@@ -364,13 +364,47 @@ function Jogo() {
     setFoco(0);
   }, [fase, vez, pergunta]);
 
+  useEffect(() => {
+    if (fase !== "arremesso" || !segurando) return;
+    let frame = 0;
+    const inicio = performance.now();
+    const loop = () => {
+      const t = (performance.now() - inicio) / 900;
+      const valor = Math.abs(Math.sin(t * Math.PI)) * 100;
+      setForca(Math.round(valor));
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(frame);
+  }, [fase, segurando]);
+
+  useEffect(() => {
+    if (fase !== "arremesso") return;
+    const down = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || e.repeat) return;
+      e.preventDefault();
+      setSegurando(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.code !== "Space") return;
+      e.preventDefault();
+      soltarForca();
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, [fase, segurando]);
+
   const controleConectado = useGamepad({
     onConfirm: () => {
       if (modalApoio) {
         fecharApoio();
         return;
       }
-      if (fase === "rolar") rolar();
+      if (fase === "rolar") abrirArremesso();
       else if (fase === "pergunta" && pergunta) {
         const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
         if (op) responder(op);
@@ -383,6 +417,16 @@ function Jogo() {
       const total = pergunta.opcoes.length;
       const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
       setFoco((f) => (f + passo + total) % total);
+    },
+    onAjuda: () => {
+      if (modalApoio || fase !== "rolar" || !ajudaDisponivel) return;
+      buscarAjuda();
+    },
+    onForcaDown: () => {
+      if (fase === "arremesso") setSegurando(true);
+    },
+    onForcaUp: () => {
+      soltarForca();
     },
   });
 
