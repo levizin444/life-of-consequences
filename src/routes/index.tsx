@@ -729,6 +729,43 @@ function Jogo() {
         </section>
       </div>
 
+      {fase === "arremesso" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-4">
+          <div className="panel w-full max-w-md p-6 text-center">
+            <Dices className="mx-auto size-12 text-primary" aria-hidden="true" />
+            <h2 className="mt-4 text-3xl text-foreground">Lançar o dado</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Segure <span className="font-semibold text-primary">[ X / ◽ ]</span> (ou a barra de
+              espaço / o botão abaixo) para carregar a força e solte para rolar!
+            </p>
+
+            <div className="mt-6 h-6 w-full overflow-hidden rounded-full border border-border bg-secondary">
+              <div
+                className="h-full rounded-full transition-[width] duration-75"
+                style={{
+                  width: `${forca}%`,
+                  background:
+                    "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
+                }}
+              />
+            </div>
+            <p className="mt-2 font-display text-2xl text-primary">{forca}%</p>
+
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                setSegurando(true);
+              }}
+              onPointerUp={() => soltarForca()}
+              onPointerLeave={() => soltarForca()}
+              className="mt-5 w-full select-none rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
+            >
+              {segurando ? "Solte para lançar!" : "Segure para carregar"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {modalApoio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
           <div className="panel w-full max-w-md p-6 text-center">
