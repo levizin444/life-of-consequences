@@ -136,7 +136,8 @@ function Jogo() {
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioPasso = useRef<HTMLAudioElement | null>(null);
   const [foco, setFoco] = useState(0);
-  const [forca, setForca] = useState(0);
+  const forcaBarra = useRef<HTMLDivElement | null>(null);
+  const forcaPercento = useRef<HTMLParagraphElement | null>(null);
   const [segurando, setSegurando] = useState(false);
 
   function tocarSomPasso() {
@@ -309,7 +310,6 @@ function Jogo() {
 
   function abrirArremesso() {
     if (fase !== "rolar") return;
-    setForca(0);
     setSegurando(false);
     setFase("arremesso");
   }
@@ -368,14 +368,22 @@ function Jogo() {
     if (fase !== "arremesso" || !segurando) return;
     let frame = 0;
     const inicio = performance.now();
+    const CICLO = 1500; // 0 -> 100 -> 0 em 1,5 s, movimento contínuo
     const loop = () => {
-      const t = (performance.now() - inicio) / 900;
-      const valor = Math.abs(Math.sin(t * Math.PI)) * 100;
-      setForca(Math.round(valor));
+      const t = (performance.now() - inicio) % CICLO;
+      const metade = CICLO / 2;
+      const valor = t < metade ? (t / metade) * 100 : (1 - (t - metade) / metade) * 100;
+      const v = Math.round(valor);
+      if (forcaBarra.current) forcaBarra.current.style.width = `${v}%`;
+      if (forcaPercento.current) forcaPercento.current.textContent = `${v}%`;
       frame = requestAnimationFrame(loop);
     };
     frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (forcaBarra.current) forcaBarra.current.style.width = "0%";
+      if (forcaPercento.current) forcaPercento.current.textContent = "0%";
+    };
   }, [fase, segurando]);
 
   useEffect(() => {
@@ -741,15 +749,16 @@ function Jogo() {
 
             <div className="mt-6 h-6 w-full overflow-hidden rounded-full border border-border bg-secondary">
               <div
-                className="h-full rounded-full transition-[width] duration-75"
+                ref={forcaBarra}
+                className="h-full rounded-full will-change-[width]"
                 style={{
-                  width: `${forca}%`,
+                  width: "0%",
                   background:
                     "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
                 }}
               />
             </div>
-            <p className="mt-2 font-display text-2xl text-primary">{forca}%</p>
+            <p ref={forcaPercento} className="mt-2 font-display text-2xl text-primary">0%</p>
 
             <button
               onPointerDown={(e) => {
