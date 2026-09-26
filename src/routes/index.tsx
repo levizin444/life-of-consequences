@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Award,
   Brain,
   CircleDollarSign,
   Dices,
+  Gamepad2,
   HeartPulse,
   Home,
   LifeBuoy,
   ShieldCheck,
+  Sparkles,
+  Trophy,
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -115,6 +119,20 @@ function novoJogador(id: number, nome: string): Jogador {
   };
 }
 
+function calcularPontuacaoTotal(j: Jogador): number {
+  return j.saude + j.dinheiro + j.familia + j.consciencia;
+}
+
+function obterAtributoMaisForte(j: Jogador) {
+  const atributos = [
+    { nome: "Saúde", chave: "saude" as const, valor: j.saude, cor: "text-success", Icon: HeartPulse },
+    { nome: "Dinheiro", chave: "dinheiro" as const, valor: j.dinheiro, cor: "text-warning", Icon: CircleDollarSign },
+    { nome: "Família", chave: "familia" as const, valor: j.familia, cor: "text-p3", Icon: Users },
+    { nome: "Consciência", chave: "consciencia" as const, valor: j.consciencia, cor: "text-primary", Icon: Brain },
+  ];
+  return atributos.reduce((maior, a) => (a.valor > maior.valor ? a : maior), atributos[0]!);
+}
+
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
   const [quantidade, setQuantidade] = useState(4);
@@ -142,15 +160,17 @@ function Jogo() {
 
   function tocarSomPasso() {
     if (typeof Audio === "undefined") return;
-    if (!audioPasso.current) audioPasso.current = new Audio(somPasso.url);
+    const url = somPasso.url || "/passo-peca.mp3";
+    if (!audioPasso.current) audioPasso.current = new Audio(url);
     const a = audioPasso.current.cloneNode() as HTMLAudioElement;
     a.volume = 0.8;
-    void a.play().catch(() => undefined);
+    void a.play().catch((err) => console.warn("Erro ao reproduzir som do passo:", err));
   }
 
   function tocarSomDado() {
     if (typeof Audio === "undefined") return;
-    if (!audioDado.current) audioDado.current = new Audio(somDado.url);
+    const url = somDado.url || "/dado-rolando.mp3";
+    if (!audioDado.current) audioDado.current = new Audio(url);
     const a = audioDado.current;
     if (fadeDado.current) {
       clearInterval(fadeDado.current);
@@ -159,7 +179,7 @@ function Jogo() {
     a.pause();
     a.currentTime = 0;
     a.volume = 1;
-    void a.play().catch(() => undefined);
+    void a.play().catch((err) => console.warn("Erro ao reproduzir som do dado:", err));
   }
 
   function pararSomDado() {
@@ -406,7 +426,20 @@ function Jogo() {
     };
   }, [fase, segurando]);
 
-  const controleConectado = useGamepad({
+  // SUPORTE A MÚLTIPLOS CONTROLES COM BLOQUEIO DE TURNO:
+  // - Gamepad 0 = Jogador 1 (id: 0)
+  // - Gamepad 1 = Jogador 2 (id: 1)
+  // - Gamepad 2 = Jogador 3 (id: 2)
+  // - Gamepad 3 = Jogador 4 (id: 3)
+  // Bloqueio de turno: APENAS o controle do jogador ativo responde durante as fases de jogo!
+  const {
+    conectado: controleConectado,
+    controlesConectados,
+    controleAtivoConectado,
+    quantidadeConectados,
+  } = useGamepad({
+    jogadorAtivoId: atual ? atual.id : 0,
+    bloqueioTurno: fase !== "setup" && fase !== "fim",
     onConfirm: () => {
       if (modalApoio) {
         fecharApoio();
@@ -437,7 +470,6 @@ function Jogo() {
       soltarForca();
     },
   });
-
 
   if (fase === "setup") {
     return (
@@ -490,6 +522,51 @@ function Jogo() {
               </div>
             ))}
           </div>
+
+          {/* Painel informativo de comandos conectados */}
+          <div className="mt-6 rounded-lg border border-border bg-secondary/60 p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Gamepad2 className="size-4 text-primary" />
+                Comandos Gamepad Conectados:
+              </span>
+              <span className="text-xs font-bold text-primary">
+                {quantidadeConectados} de {quantidade} detectado(s)
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[0, 1, 2, 3].map((slot) => {
+                const ativoNoJogo = slot < quantidade;
+                const conectado = controlesConectados[slot];
+                return (
+                  <div
+                    key={slot}
+                    className={`rounded-md border p-2 text-center text-xs transition ${
+                      !ativoNoJogo
+                        ? "opacity-30 border-dashed border-border"
+                        : conectado
+                        ? "border-success/60 bg-success/10 text-foreground"
+                        : "border-border bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    <p className="font-bold">Comando {slot}</p>
+                    <p className="text-[10px] opacity-80">Jogador {slot + 1}</p>
+                    <span
+                      className={`inline-block mt-1 text-[9px] font-semibold px-2 py-0.5 rounded ${
+                        conectado ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {conectado ? "● Conectado" : "○ Desconectado"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2.5 text-[11px] text-muted-foreground">
+              Regra de bloqueio de turno ativa: cada jogador responderá exclusivamente pelo seu comando correspondente.
+            </p>
+          </div>
+
           <button
             onClick={iniciar}
             className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-display text-xl tracking-wide text-primary-foreground transition hover:opacity-90"
@@ -501,67 +578,238 @@ function Jogo() {
         <div className="panel mt-4 p-5 text-sm text-muted-foreground">
           <h3 className="text-xl text-foreground">Como jogar</h3>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>Na sua vez, role o dado e avance pelo mapa.</li>
+            <li>Na sua vez, role o dado no seu respectivo comando e avance pelo mapa.</li>
             <li>Casa de pergunta: escolha uma resposta e veja a consequência real.</li>
             <li>Se saúde, dinheiro ou família chegarem perto de zero, seu final muda.</li>
-            <li>A partida acaba quando todos chegam à casa "Futuro".</li>
+            <li>A partida acaba quando todos chegam à casa "Futuro" e o grande campeão é revelado!</li>
           </ul>
         </div>
       </main>
     );
   }
 
+  // TELA FINAL: DESTAQUE DO CAMPEÃO DA PARTIDA
   if (fase === "fim") {
     const selos = calcularSelos(jogadores);
+
+    // Ranking de todos os jogadores ordenado pela pontuação total
+    const ranking = [...jogadores].sort((a, b) => {
+      const scoreA = calcularPontuacaoTotal(a);
+      const scoreB = calcularPontuacaoTotal(b);
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      // Critérios de desempate
+      if (b.consciencia !== a.consciencia) return b.consciencia - a.consciencia;
+      if (b.saude !== a.saude) return b.saude - a.saude;
+      return b.dinheiro - a.dinheiro;
+    });
+
+    const campeao = ranking[0]!;
+    const demaisJogadores = ranking.slice(1);
+    const pontuacaoCampeao = calcularPontuacaoTotal(campeao);
+    const atributoForteCampeao = obterAtributoMaisForte(campeao);
+    const finalCampeao = calcularFinal(campeao);
+    const corFinalCampeao =
+      finalCampeao.tom === "bom"
+        ? "text-success"
+        : finalCampeao.tom === "medio"
+        ? "text-warning"
+        : "text-destructive";
+
     return (
-      <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
-        <h1 className="text-4xl text-foreground">Finais da partida</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Cada caminho gerou um desfecho. Compare as escolhas de cada jogador.
-        </p>
-        <div className="mt-6 space-y-4">
-          {jogadores.map((j) => {
-            const f = calcularFinal(j);
-            const cor =
-              f.tom === "bom" ? "text-success" : f.tom === "medio" ? "text-warning" : "text-destructive";
-            return (
-              <div key={j.id} className="panel p-5">
-                <div className="flex items-center gap-2">
-                  <span className={`size-4 rounded-full ${j.cor}`} />
-                  <span className="font-semibold">{j.nome}</span>
-                </div>
-                <h2 className={`mt-2 text-2xl ${cor}`}>{f.titulo}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">{f.descricao}</p>
-                {(selos.get(j.id) ?? []).length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(selos.get(j.id) ?? []).map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full border border-primary/50 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <Barras j={j} />
-              </div>
-            );
-          })}
-        </div>
-        <div className="panel mt-6 p-5 text-sm text-muted-foreground">
-          <h3 className="text-xl text-foreground">Precisa de ajuda de verdade?</h3>
-          <p className="mt-2">
-            CAPS-AD e Unidades Básicas de Saúde atendem gratuitamente pelo SUS. CVV: 188 (24h).
-            Dependência não é falta de caráter — é uma doença com tratamento.
+      <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-8 md:py-12">
+        {/* Cabeçalho */}
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+            Feira de ciências • Encerramento da partida
+          </p>
+          <h1 className="mt-2 text-4xl md:text-5xl text-foreground font-display">
+            Desfechos & Campeão da Partida
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+            A pontuação total reflete a soma de todas as suas decisões em Saúde, Dinheiro, Família e Consciência.
           </p>
         </div>
-        <button
-          onClick={reiniciar}
-          className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
-        >
-          Jogar de novo
-        </button>
+
+        {/* CARD CENTRAL DE DESTAQUE: GRANDE CAMPEÃO */}
+        <div className="relative mt-8 overflow-hidden rounded-2xl border-2 border-yellow-400 bg-gradient-to-b from-yellow-500/15 via-card to-card p-6 md:p-8 shadow-[0_0_40px_rgba(250,204,21,0.25)] text-center">
+          {/* Efeito de brilho de fundo */}
+          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 size-48 rounded-full bg-yellow-400/20 blur-3xl" />
+
+          {/* Badge superior */}
+          <div className="inline-flex items-center justify-center gap-2 rounded-full border border-yellow-400/50 bg-yellow-400/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-yellow-300 shadow-sm">
+            <Sparkles className="size-4 animate-pulse text-yellow-400" />
+            Grande Campeão / Destaque da Partida
+            <Sparkles className="size-4 animate-pulse text-yellow-400" />
+          </div>
+
+          {/* Troféu Dourado em Destaque */}
+          <div className="mx-auto mt-5 mb-3 flex size-20 items-center justify-center rounded-full border-2 border-yellow-400/80 bg-gradient-to-tr from-yellow-500/30 to-yellow-300/30 shadow-[0_0_25px_rgba(250,204,21,0.4)]">
+            <Trophy className="size-11 text-yellow-400 drop-shadow" />
+          </div>
+
+          {/* Nome e Indicador do Campeão */}
+          <h2 className="text-3xl md:text-4xl text-foreground font-display tracking-wide flex items-center justify-center gap-3">
+            <span className={`size-4 rounded-full ${campeao.cor}`} />
+            {campeao.nome}
+          </h2>
+
+          {/* Métricas Principais do Campeão */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+            {/* Pontuação Total */}
+            <div className="rounded-xl border border-yellow-400/40 bg-yellow-400/10 p-3.5 shadow-sm text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-yellow-400">
+                Pontuação Total Acumulada
+              </p>
+              <p className="font-display text-4xl text-foreground mt-1">
+                {pontuacaoCampeao}
+                <span className="text-sm font-sans text-muted-foreground font-normal ml-1">/ 400 pts</span>
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                (Saúde + Dinheiro + Família + Consciência)
+              </p>
+            </div>
+
+            {/* Atributo Mais Forte */}
+            <div className="rounded-xl border border-primary/40 bg-primary/10 p-3.5 shadow-sm text-center flex flex-col justify-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                Atributo Mais Forte
+              </p>
+              <div className="mt-1 flex items-center justify-center gap-2">
+                <atributoForteCampeao.Icon className={`size-6 ${atributoForteCampeao.cor}`} />
+                <span className="font-display text-3xl text-foreground">{atributoForteCampeao.nome}</span>
+                <span className="rounded bg-secondary px-2 py-0.5 font-sans text-xs font-bold text-foreground">
+                  {atributoForteCampeao.valor} pts
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Maior equilíbrio e proteção demonstrados
+              </p>
+            </div>
+          </div>
+
+          {/* Desfecho Narrativo do Campeão */}
+          <div className="mt-6 border-t border-border/80 pt-5 text-left max-w-xl mx-auto">
+            <div className="flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                Desfecho no Futuro:
+              </span>
+              <span className={`text-xl font-bold ${corFinalCampeao}`}>{finalCampeao.titulo}</span>
+            </div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{finalCampeao.descricao}</p>
+
+            {(selos.get(campeao.id) ?? []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(selos.get(campeao.id) ?? []).map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full border border-yellow-400/50 bg-yellow-400/10 px-3 py-1 text-xs font-semibold text-yellow-300"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <Barras j={campeao} />
+            </div>
+          </div>
+        </div>
+
+        {/* CLASSIFICAÇÃO GERAL DOS DEMAIS JOGADORES */}
+        {demaisJogadores.length > 0 && (
+          <div className="mt-10">
+            <h3 className="text-2xl text-foreground font-display flex items-center gap-2 mb-4">
+              <Award className="size-6 text-muted-foreground" />
+              Classificação Geral dos Participantes
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {demaisJogadores.map((j, index) => {
+                const posicao = index + 2;
+                const score = calcularPontuacaoTotal(j);
+                const forte = obterAtributoMaisForte(j);
+                const f = calcularFinal(j);
+                const cor =
+                  f.tom === "bom"
+                    ? "text-success"
+                    : f.tom === "medio"
+                    ? "text-warning"
+                    : "text-destructive";
+
+                return (
+                  <div key={j.id} className="panel p-5 flex flex-col justify-between border border-border">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-xl text-muted-foreground">#{posicao}</span>
+                          <span className={`size-3.5 rounded-full ${j.cor}`} />
+                          <span className="font-bold text-foreground text-base">{j.nome}</span>
+                        </div>
+                        <span className="rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-bold text-foreground">
+                          {score} pts
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span>Mais forte:</span>
+                        <forte.Icon className={`size-3.5 ${forte.cor}`} />
+                        <span className="font-semibold text-foreground">{forte.nome} ({forte.valor} pts)</span>
+                      </div>
+
+                      <h4 className={`mt-3 text-lg font-bold ${cor}`}>{f.titulo}</h4>
+                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                        {f.descricao}
+                      </p>
+
+                      {(selos.get(j.id) ?? []).length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {(selos.get(j.id) ?? []).map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-border/60">
+                      <Barras j={j} compacto />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Informações de Apoio e Prevenção Real */}
+        <div className="panel mt-8 p-5 text-sm text-muted-foreground border border-border">
+          <h3 className="text-xl text-foreground font-display flex items-center gap-2">
+            <LifeBuoy className="size-5 text-primary" />
+            Precisa de ajuda de verdade?
+          </h3>
+          <p className="mt-2 leading-relaxed">
+            CAPS-AD e Unidades Básicas de Saúde atendem gratuitamente pelo SUS. <strong>CVV: 188 (24h)</strong>.
+            Dependência de drogas ou apostas não é falta de caráter — é uma doença com tratamento e acolhimento.
+          </p>
+        </div>
+
+        {/* Botão de Reinício rápido com Controle */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={reiniciar}
+            className="w-full rounded-xl bg-primary px-6 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 shadow-lg flex items-center justify-center gap-3 ring-2 ring-primary/40"
+          >
+            <Dices className="size-6" />
+            Jogar de Novo
+            <span className="rounded-md border border-primary-foreground/40 bg-primary-foreground/10 px-2.5 py-0.5 font-sans text-xs tracking-normal font-semibold">
+              Pressione [A] no Controle ou Clique Aqui
+            </span>
+          </button>
+        </div>
       </main>
     );
   }
@@ -617,11 +865,14 @@ function Jogo() {
         </div>
 
         <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
-          {controleConectado && (
-            <div className="mb-3 flex items-center gap-2 rounded-md border border-accent/50 bg-accent/10 px-3 py-1.5 text-[11px] font-semibold text-accent">
-              🎮 Controle conectado — pressione [A] para jogar
-            </div>
-          )}
+          {/* Indicação visual da rodada */}
+          <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 shadow-sm">
+            <Gamepad2 className="size-5 animate-pulse text-primary shrink-0" />
+            <p className="text-sm font-bold tracking-wide text-foreground">
+              Aguardando <span className={CORES_TEXTO[atual.id]}>{atual.nome}</span> fazer sua jogada
+            </p>
+          </div>
+
           <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
@@ -632,108 +883,108 @@ function Jogo() {
             </div>
           </div>
 
-        {fase === "rolar" && (
-          <div className="flex flex-1 flex-col justify-center text-center">
-            <Dices className="mx-auto size-14 text-primary" aria-hidden="true" />
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sua vez de avançar</p>
-            <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
-            <button
-              onClick={abrirArremesso}
-              className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
-                controleConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
-              }`}
-            >
-              Rolar o dado
-            </button>
-            <button
-              onClick={buscarAjuda}
-              disabled={!ajudaDisponivel}
-              className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-60 ${
-                ajudaDisponivel
-                  ? "border-accent bg-accent/15 text-accent ring-2 ring-accent/60 hover:bg-accent/25"
-                  : "border-accent/60 bg-accent/10 text-accent"
-              }`}
-            >
-              <LifeBuoy className="size-4" aria-hidden="true" />
-              Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
-              <span className="rounded border border-current px-1.5 py-0.5 font-display text-xs tracking-widest">
-                Y / △
-              </span>
-            </button>
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
-              atributo mais baixo.
-            </p>
-          </div>
-        )}
+          {fase === "rolar" && (
+            <div className="flex flex-1 flex-col justify-center text-center">
+              <Dices className="mx-auto size-14 text-primary" aria-hidden="true" />
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sua vez de avançar</p>
+              <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
+              <button
+                onClick={abrirArremesso}
+                className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
+                  controleAtivoConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
+                }`}
+              >
+                Rolar o dado
+              </button>
+              <button
+                onClick={buscarAjuda}
+                disabled={!ajudaDisponivel}
+                className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-60 ${
+                  ajudaDisponivel
+                    ? "border-accent bg-accent/15 text-accent ring-2 ring-accent/60 hover:bg-accent/25"
+                    : "border-accent/60 bg-accent/10 text-accent"
+                }`}
+              >
+                <LifeBuoy className="size-4" aria-hidden="true" />
+                Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
+                <span className="rounded border border-current px-1.5 py-0.5 font-display text-xs tracking-widest">
+                  Y / △
+                </span>
+              </button>
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
+                atributo mais baixo.
+              </p>
+            </div>
+          )}
 
-        {fase === "rolando" && dado && (
-          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
-            <div className="dice-stage" aria-label={`Dado mostrando ${dado}`}>
+          {fase === "rolando" && dado && (
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
+              <div className="dice-stage" aria-label={`Dado mostrando ${dado}`}>
+                <DiceFace valor={dado} />
+              </div>
+              <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Dado em movimento</p>
+              <h2 className="mt-2 text-4xl text-foreground">Rolando...</h2>
+              <p className="mt-2 text-sm text-muted-foreground">A sorte está lançada, {atual.nome}.</p>
+            </div>
+          )}
+
+          {fase === "movendo" && dado && (
+            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
               <DiceFace valor={dado} />
+              <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
+              <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
+              <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
             </div>
-            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Dado em movimento</p>
-            <h2 className="mt-2 text-4xl text-foreground">Rolando...</h2>
-            <p className="mt-2 text-sm text-muted-foreground">A sorte está lançada, {atual.nome}.</p>
-          </div>
-        )}
+          )}
 
-        {fase === "movendo" && dado && (
-          <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
-            <DiceFace valor={dado} />
-            <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
-            <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
-          </div>
-        )}
+          {fase === "pergunta" && pergunta && (
+            <div className="flex flex-1 flex-col">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                {pergunta.tema === "drogas" ? <HeartPulse className="size-4" /> : <CircleDollarSign className="size-4" />}
+                <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
+              </div>
+              <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
+              <div className="mt-6 grid gap-3 pb-4">
+                {pergunta.opcoes.map((op, index) => (
+                  <button
+                    key={op.texto}
+                    onClick={() => responder(op)}
+                    onMouseEnter={() => setFoco(index)}
+                    className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
+                      foco === index
+                        ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
+                        : "border-border"
+                    }`}
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <span className="leading-snug">{op.texto}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-        {fase === "pergunta" && pergunta && (
-          <div className="flex flex-1 flex-col">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              {pergunta.tema === "drogas" ? <HeartPulse className="size-4" /> : <CircleDollarSign className="size-4" />}
-              <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
+          {fase === "resultado" && resultado && (
+            <div className="flex flex-1 flex-col">
+              <div className="flex size-12 items-center justify-center rounded-md bg-accent/15 text-accent">
+                <Brain className="size-6" aria-hidden="true" />
+              </div>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{resultado.titulo}</p>
+              <h2 className="mt-2 text-3xl text-foreground">Toda escolha deixa uma marca</h2>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">{resultado.texto}</p>
+              <Efeitos efeito={resultado.efeito} />
+              <button
+                onClick={continuar}
+                className="mt-auto w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
+              >
+                Passar a vez
+              </button>
             </div>
-            <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
-            <div className="mt-6 grid gap-3 pb-4">
-              {pergunta.opcoes.map((op, index) => (
-                <button
-                  key={op.texto}
-                  onClick={() => responder(op)}
-                  onMouseEnter={() => setFoco(index)}
-                  className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
-                    controleConectado && foco === index
-                      ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
-                      : "border-border"
-                  }`}
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
-                    {String.fromCharCode(65 + index)}
-                  </span>
-                  <span className="leading-snug">{op.texto}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {fase === "resultado" && resultado && (
-          <div className="flex flex-1 flex-col">
-            <div className="flex size-12 items-center justify-center rounded-md bg-accent/15 text-accent">
-              <Brain className="size-6" aria-hidden="true" />
-            </div>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{resultado.titulo}</p>
-            <h2 className="mt-2 text-3xl text-foreground">Toda escolha deixa uma marca</h2>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground">{resultado.texto}</p>
-            <Efeitos efeito={resultado.efeito} />
-            <button
-              onClick={continuar}
-              className="mt-auto w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
-            >
-              Passar a vez
-            </button>
-          </div>
-        )}
+          )}
         </section>
       </div>
 
@@ -744,7 +995,7 @@ function Jogo() {
             <h2 className="mt-4 text-3xl text-foreground">Lançar o dado</h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Segure <span className="font-semibold text-primary">[ X / ◽ ]</span> (ou a barra de
-              espaço / o botão abaixo) para carregar a força e solte para rolar!
+              espaço / botão abaixo) para carregar a força e solte para rolar!
             </p>
 
             <div className="mt-6 h-6 w-full overflow-hidden rounded-full border border-border bg-secondary">
