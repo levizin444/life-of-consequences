@@ -1,15 +1,21 @@
+import confetti from "canvas-confetti";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Award,
+  BarChart3,
   Brain,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   Dices,
   Gamepad2,
   HeartPulse,
   Home,
   LifeBuoy,
+  Play,
   ShieldCheck,
   Sparkles,
+  Target,
   Trophy,
   Users,
   Volume1,
@@ -70,6 +76,7 @@ type Jogador = {
 
 type Fase =
   | "setup"
+  | "tutorial"
   | "rolar"
   | "arremesso"
   | "rolando"
@@ -77,6 +84,59 @@ type Fase =
   | "pergunta"
   | "resultado"
   | "fim";
+
+const CARDS_TUTORIAL = [
+  {
+    numero: 1,
+    tag: "O OBJETIVO DO JOGO",
+    titulo: "O Caminho das Escolhas",
+    texto:
+      "Você e seus amigos percorrerão a jornada da vida. A cada casa, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão suas atitudes. Cada decisão muda o seu destino!",
+    icone: Target,
+    corTag: "text-primary bg-primary/10 border-primary/20",
+    corIcone: "text-primary",
+  },
+  {
+    numero: 2,
+    tag: "OS 4 PILARES DA VIDA",
+    titulo: "Mantenha o Equilíbrio",
+    texto:
+      "Suas escolhas alteram 4 atributos essenciais: Saúde, Dinheiro, Família e Consciência. Se algum deles cair para menos de 30%, a barra entrará em ALERTA VERMELHO. Não deixe seus indicadores zerarem!",
+    icone: BarChart3,
+    corTag: "text-warning bg-warning/10 border-warning/20",
+    corIcone: "text-warning",
+  },
+  {
+    numero: 3,
+    tag: "LANÇANDO O DADO",
+    titulo: "Minigame de Força",
+    texto:
+      "Na sua vez, SEGURE o botão [ X / ◽ ] (ou barra de espaço) para ver a barra de força subir e descer. SOLTE no momento certo para arremessar o dado e avançar pelo mapa!",
+    icone: Dices,
+    corTag: "text-accent bg-accent/10 border-accent/20",
+    corIcone: "text-accent",
+  },
+  {
+    numero: 4,
+    tag: "REDE DE APOIO (REDE DE EMERGÊNCIA)",
+    titulo: "Pedindo Ajuda quando Precisa",
+    texto:
+      "Está em perigo? Se algum atributo estiver abaixo de 25%, pressione [ Y / △ ] no seu controle. Você usará o seu turno para pedir ajuda (Rede de Apoio), recuperando pontos vitais! (Uso único por jogador).",
+    icone: LifeBuoy,
+    corTag: "text-destructive bg-destructive/10 border-destructive/20",
+    corIcone: "text-destructive",
+  },
+  {
+    numero: 5,
+    tag: "O CAMPEÃO E AS CONQUISTAS",
+    titulo: "Chegue ao Futuro!",
+    texto:
+      "A partida termina quando todos chegarem à casa 'Futuro'. No final, quem somar a maior quantidade total de atributos será coroado o Grande Campeão e receberá um prêmio!",
+    icone: Trophy,
+    corTag: "text-warning bg-warning/10 border-warning/20",
+    corIcone: "text-warning",
+  },
+];
 
 const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
 const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
@@ -138,6 +198,7 @@ function obterAtributoMaisForte(j: Jogador) {
 
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
+  const [cardTutorial, setCardTutorial] = useState(0);
   const [quantidade, setQuantidade] = useState(4);
   const [nomes, setNomes] = useState<string[]>(["", "", "", ""]);
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
@@ -280,16 +341,54 @@ function Jogo() {
     };
   }, []);
 
+  function dispararConfetesVitoria() {
+    if (typeof window === "undefined") return;
+
+    // Rajada 1: Lado esquerdo explodindo em direção ao centro
+    confetti({
+      particleCount: 65,
+      angle: 60,
+      spread: 60,
+      origin: { x: 0.05, y: 0.75 },
+      colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
+      disableForReducedMotion: true,
+    });
+
+    // Rajada 2: Lado direito explodindo em direção ao centro (após 250ms)
+    setTimeout(() => {
+      confetti({
+        particleCount: 65,
+        angle: 120,
+        spread: 60,
+        origin: { x: 0.95, y: 0.75 },
+        colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
+        disableForReducedMotion: true,
+      });
+    }, 250);
+
+    // Rajada 3: Grande explosão central festiva (após 500ms)
+    setTimeout(() => {
+      confetti({
+        particleCount: 110,
+        spread: 100,
+        origin: { x: 0.5, y: 0.6 },
+        colors: ["#ffd700", "#ffaa00", "#00f0ff", "#a855f7", "#22c55e"],
+        disableForReducedMotion: true,
+      });
+    }, 500);
+  }
+
   useEffect(() => {
     if (fase === "fim") {
       tocarSomFinal();
+      dispararConfetesVitoria();
     } else {
       pararSomFinal();
     }
     return () => {
       pararSomFinal();
     };
-  }, [fase, volumeEfetivo]);
+  }, [fase]);
 
   useEffect(() => {
     if (audioFinal.current) {
@@ -342,6 +441,30 @@ function Jogo() {
     setUsadas([]);
     setDado(null);
     setResultado(null);
+    setCardTutorial(0);
+    setFase("tutorial");
+  }
+
+  function tutorialAnterior() {
+    setCardTutorial((c) => {
+      const novo = Math.max(0, c - 1);
+      if (novo !== c) tocarSomNavegacao();
+      return novo;
+    });
+  }
+
+  function tutorialProximo() {
+    setCardTutorial((c) => {
+      if (c >= CARDS_TUTORIAL.length - 1) {
+        comecarPartida();
+        return c;
+      }
+      tocarSomNavegacao();
+      return c + 1;
+    });
+  }
+
+  function comecarPartida() {
     setFase("rolar");
   }
 
@@ -480,6 +603,7 @@ function Jogo() {
     pararSomFinal();
     pararSomTensao();
     setFase("setup");
+    setCardTutorial(0);
     setJogadores([]);
     setNomes(["", "", "", ""]);
     setQuantidade(4);
@@ -544,21 +668,30 @@ function Jogo() {
     quantidadeConectados,
   } = useGamepad({
     jogadorAtivoId: atual ? atual.id : 0,
-    bloqueioTurno: fase !== "setup" && fase !== "fim",
+    bloqueioTurno: fase !== "setup" && fase !== "tutorial" && fase !== "fim",
     onConfirm: () => {
       if (modalApoio) {
         fecharApoio();
         return;
       }
-      if (fase === "rolar") abrirArremesso();
+      if (fase === "setup") iniciar();
+      else if (fase === "tutorial") comecarPartida();
+      else if (fase === "rolar") abrirArremesso();
       else if (fase === "pergunta" && pergunta) {
         const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
         if (op) responder(op);
       } else if (fase === "resultado") continuar();
       else if (fase === "fim") reiniciar();
-      else if (fase === "setup") iniciar();
     },
     onMove: (direcao) => {
+      if (fase === "tutorial") {
+        if (direcao === "esquerda" || direcao === "cima") {
+          tutorialAnterior();
+        } else if (direcao === "direita" || direcao === "baixo") {
+          tutorialProximo();
+        }
+        return;
+      }
       if (fase !== "pergunta" || !pergunta) return;
       const total = pergunta.opcoes.length;
       const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
@@ -581,6 +714,24 @@ function Jogo() {
       soltarForca();
     },
   });
+
+  useEffect(() => {
+    if (fase !== "tutorial") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        tutorialAnterior();
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        e.preventDefault();
+        tutorialProximo();
+      } else if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+        e.preventDefault();
+        comecarPartida();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fase]);
 
   useEffect(() => {
     if (fase !== "pergunta" || !pergunta) return;
@@ -727,6 +878,191 @@ function Jogo() {
             <li>Se saúde, dinheiro ou família chegarem perto de zero, seu final muda.</li>
             <li>A partida acaba quando todos chegam à casa "Futuro" e o grande campeão é revelado!</li>
           </ul>
+        </div>
+      </main>
+    );
+  }
+
+  // TELA DE TUTORIAL INTERATIVO ("COMO JOGAR")
+  if (fase === "tutorial") {
+    const cardAtual = CARDS_TUTORIAL[cardTutorial]!;
+    const IconeCard = cardAtual.icone;
+
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-4 py-8 md:py-12">
+        <ControleAudio
+          volume={volume}
+          mutado={mutado}
+          onVolumeChange={(v) => {
+            setVolume(v);
+            if (mutado && v > 0) setMutado(false);
+          }}
+          onToggleMute={() => setMutado((m) => !m)}
+        />
+
+        {/* Cabeçalho do Tutorial */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Sparkles className="size-3.5" />
+            <span>Guia Rápido • Como Jogar</span>
+          </div>
+          <h1 className="mt-2 font-display text-3xl md:text-4xl text-foreground">
+            Instruções da Partida
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Conheça as regras essenciais antes de iniciar a jornada das escolhas.
+          </p>
+        </div>
+
+        {/* Indicador de Passos / Stepper */}
+        <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso do tutorial">
+          {CARDS_TUTORIAL.map((c, i) => (
+            <button
+              key={c.numero}
+              type="button"
+              onClick={() => {
+                if (i !== cardTutorial) {
+                  tocarSomNavegacao();
+                  setCardTutorial(i);
+                }
+              }}
+              title={`Ir para card ${c.numero}: ${c.tag}`}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i === cardTutorial
+                  ? "w-8 bg-primary"
+                  : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Card Principal Interativo */}
+        <div className="panel relative mt-6 overflow-hidden p-6 md:p-8 text-center transition-all duration-300 border-2 border-border/80 shadow-2xl">
+          {/* Top badge */}
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-xs font-semibold text-muted-foreground">
+              CARD {cardAtual.numero} DE {CARDS_TUTORIAL.length}
+            </span>
+            <span
+              className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cardAtual.corTag}`}
+            >
+              {cardAtual.tag}
+            </span>
+          </div>
+
+          {/* Ícone Grande */}
+          <div className="mx-auto mt-4 flex size-20 items-center justify-center rounded-2xl shadow-inner md:size-24 bg-secondary">
+            <IconeCard className={`size-10 md:size-12 ${cardAtual.corIcone}`} />
+          </div>
+
+          {/* Título do Card */}
+          <h2 className="mt-5 text-2xl font-bold text-foreground md:text-3xl">
+            {cardAtual.titulo}
+          </h2>
+
+          {/* Texto explicativo */}
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
+            {cardAtual.texto}
+          </p>
+
+          {/* Elementos visuais extras específicos de cada card para enriquecer a experiência */}
+          {cardAtual.numero === 2 && (
+            <div className="mx-auto mt-5 grid max-w-lg grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="flex items-center gap-1.5 rounded-lg border border-success/30 bg-success/10 px-2.5 py-1.5 text-xs font-semibold text-success justify-center">
+                <HeartPulse className="size-3.5" /> Saúde
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-semibold text-warning justify-center">
+                <CircleDollarSign className="size-3.5" /> Dinheiro
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-p3/30 bg-p3/10 px-2.5 py-1.5 text-xs font-semibold text-p3 justify-center">
+                <Users className="size-3.5" /> Família
+              </div>
+              <div className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary justify-center">
+                <Brain className="size-3.5" /> Consciência
+              </div>
+            </div>
+          )}
+
+          {cardAtual.numero === 3 && (
+            <div className="mx-auto mt-5 max-w-md rounded-lg border border-border bg-secondary/50 p-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+                <span>Força do Arremesso</span>
+                <span className="font-semibold text-primary">[ X / ◽ ] Segure e Solte</span>
+              </div>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full w-3/4 rounded-full"
+                  style={{
+                    background: "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {cardAtual.numero === 4 && (
+            <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs font-bold text-destructive">
+              <LifeBuoy className="size-4 animate-spin" />
+              <span>Pressione [ Y / △ ] quando estiver em estado crítico (&lt; 25%) para recuperar +30 pontos!</span>
+            </div>
+          )}
+
+          {cardAtual.numero === 5 && (
+            <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-bold text-warning">
+              <Trophy className="size-4" />
+              <span>Soma total dos 4 atributos define o vencedor da partida!</span>
+            </div>
+          )}
+
+          {/* Botões de Navegação Anterior / Próximo */}
+          <div className="mt-8 flex items-center justify-between gap-3 border-t border-border/80 pt-5">
+            <button
+              type="button"
+              onClick={tutorialAnterior}
+              disabled={cardTutorial === 0}
+              className={`flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-semibold transition ${
+                cardTutorial === 0
+                  ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                  : "bg-secondary text-secondary-foreground hover:border-primary hover:text-foreground"
+              }`}
+            >
+              <ChevronLeft className="size-4" />
+              <span>Anterior</span>
+            </button>
+
+            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+              Navegue com [ ◀ ▶ ] ou botões
+            </span>
+
+            <button
+              type="button"
+              onClick={tutorialProximo}
+              className="flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
+            >
+              <span>{cardTutorial === CARDS_TUTORIAL.length - 1 ? "Entendido!" : "Próximo"}</span>
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Rodapé: Botão de Iniciar com Destaque e Opção de Pular */}
+        <div className="mt-6 flex flex-col items-center gap-2.5">
+          <button
+            type="button"
+            onClick={comecarPartida}
+            className="group flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 font-display text-xl text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:opacity-95 active:scale-[0.99]"
+          >
+            <Gamepad2 className="size-6 transition group-hover:scale-110" />
+            <span>Pressionar [ A / X ] para Iniciar Partida</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={comecarPartida}
+            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition"
+          >
+            Pular tutorial e começar direto
+          </button>
         </div>
       </main>
     );
