@@ -12,6 +12,9 @@ import {
   Sparkles,
   Trophy,
   Users,
+  Volume1,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -154,21 +157,28 @@ function Jogo() {
   const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioPasso = useRef<HTMLAudioElement | null>(null);
   const [foco, setFoco] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [mutado, setMutado] = useState(false);
+  const volumeEfetivo = mutado ? 0 : volume;
+
   const forcaBarra = useRef<HTMLDivElement | null>(null);
   const forcaPercento = useRef<HTMLParagraphElement | null>(null);
   const [segurando, setSegurando] = useState(false);
 
+  const audioTensao = useRef<HTMLAudioElement | null>(null);
+  const audioFinal = useRef<HTMLAudioElement | null>(null);
+
   function tocarSomPasso() {
-    if (typeof Audio === "undefined") return;
+    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
     const url = somPasso.url || "/passo-peca.mp3";
     if (!audioPasso.current) audioPasso.current = new Audio(url);
     const a = audioPasso.current.cloneNode() as HTMLAudioElement;
-    a.volume = 0.8;
+    a.volume = Math.min(1, 0.8 * volumeEfetivo);
     void a.play().catch((err) => console.warn("Erro ao reproduzir som do passo:", err));
   }
 
   function tocarSomDado() {
-    if (typeof Audio === "undefined") return;
+    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
     const url = somDado.url || "/dado-rolando.mp3";
     if (!audioDado.current) audioDado.current = new Audio(url);
     const a = audioDado.current;
@@ -178,7 +188,7 @@ function Jogo() {
     }
     a.pause();
     a.currentTime = 0;
-    a.volume = 1;
+    a.volume = Math.min(1, 1 * volumeEfetivo);
     void a.play().catch((err) => console.warn("Erro ao reproduzir som do dado:", err));
   }
 
@@ -200,6 +210,62 @@ function Jogo() {
     }, 25);
   }
 
+  function tocarSomNavegacao() {
+    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
+    const a = new Audio("/botao-navegacao.mp3");
+    a.volume = Math.min(1, 0.6 * volumeEfetivo);
+    void a.play().catch(() => undefined);
+  }
+
+  function tocarSomTensao() {
+    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
+    if (!audioTensao.current) {
+      audioTensao.current = new Audio("/audio-barradodado.mp3");
+      audioTensao.current.loop = true;
+    }
+    const a = audioTensao.current;
+    a.volume = Math.min(1, 0.75 * volumeEfetivo);
+    if (a.paused) {
+      a.currentTime = 0;
+      void a.play().catch(() => undefined);
+    }
+  }
+
+  function pararSomTensao() {
+    const a = audioTensao.current;
+    if (!a) return;
+    a.pause();
+    a.currentTime = 0;
+  }
+
+  function tocarSomRespostaBoa() {
+    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
+    const a = new Audio("/audio-respostaboa.mp3");
+    a.volume = Math.min(1, 0.85 * volumeEfetivo);
+    void a.play().catch(() => undefined);
+  }
+
+  function tocarSomFinal() {
+    if (typeof Audio === "undefined") return;
+    if (!audioFinal.current) {
+      audioFinal.current = new Audio("/audio-telafinal.mp3");
+      audioFinal.current.loop = true;
+    }
+    const a = audioFinal.current;
+    a.volume = Math.min(1, 0.75 * volumeEfetivo);
+    if (volumeEfetivo > 0 && a.paused) {
+      a.currentTime = 0;
+      void a.play().catch(() => undefined);
+    }
+  }
+
+  function pararSomFinal() {
+    const a = audioFinal.current;
+    if (!a) return;
+    a.pause();
+    a.currentTime = 0;
+  }
+
   const atual = jogadores[vez]!;
 
   useEffect(() => {
@@ -209,8 +275,35 @@ function Jogo() {
       esperasMovimento.current.forEach(clearTimeout);
       if (fadeDado.current) clearInterval(fadeDado.current);
       audioDado.current?.pause();
+      pararSomTensao();
+      pararSomFinal();
     };
   }, []);
+
+  useEffect(() => {
+    if (fase === "fim") {
+      tocarSomFinal();
+    } else {
+      pararSomFinal();
+    }
+    return () => {
+      pararSomFinal();
+    };
+  }, [fase, volumeEfetivo]);
+
+  useEffect(() => {
+    if (audioFinal.current) {
+      audioFinal.current.volume = Math.min(1, 0.75 * volumeEfetivo);
+      if (volumeEfetivo <= 0) {
+        audioFinal.current.pause();
+      } else if (fase === "fim" && audioFinal.current.paused) {
+        void audioFinal.current.play().catch(() => undefined);
+      }
+    }
+    if (audioTensao.current) {
+      audioTensao.current.volume = Math.min(1, 0.75 * volumeEfetivo);
+    }
+  }, [volumeEfetivo, fase]);
 
   function mostrarDeltas(id: number, efeito: Efeito) {
     const key = Date.now();
@@ -337,6 +430,7 @@ function Jogo() {
   function soltarForca() {
     if (fase !== "arremesso" || !segurando) return;
     setSegurando(false);
+    pararSomTensao();
     rolar();
   }
 
@@ -365,6 +459,15 @@ function Jogo() {
     const lista = jogadores.map((j) => (j.id === atual.id ? aplicar(j, op.efeito) : j));
     setJogadores(lista);
     mostrarDeltas(atual.id, op.efeito);
+
+    const somaEfeitos = Object.values(op.efeito).reduce<number>(
+      (acc, v) => acc + (typeof v === "number" ? v : 0),
+      0,
+    );
+    if (somaEfeitos > 0) {
+      tocarSomRespostaBoa();
+    }
+
     setResultado({ titulo: "Consequência", texto: op.feedback, efeito: op.efeito });
     setFase("resultado");
   }
@@ -374,6 +477,8 @@ function Jogo() {
   }
 
   function reiniciar() {
+    pararSomFinal();
+    pararSomTensao();
     setFase("setup");
     setJogadores([]);
     setNomes(["", "", "", ""]);
@@ -457,7 +562,13 @@ function Jogo() {
       if (fase !== "pergunta" || !pergunta) return;
       const total = pergunta.opcoes.length;
       const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
-      setFoco((f) => (f + passo + total) % total);
+      setFoco((f) => {
+        const prox = (f + passo + total) % total;
+        if (prox !== f) {
+          tocarSomNavegacao();
+        }
+        return prox;
+      });
     },
     onAjuda: () => {
       if (modalApoio || fase !== "rolar" || !ajudaDisponivel) return;
@@ -471,9 +582,42 @@ function Jogo() {
     },
   });
 
+  useEffect(() => {
+    if (fase !== "pergunta" || !pergunta) return;
+    const onKey = (e: KeyboardEvent) => {
+      const total = pergunta.opcoes.length;
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        setFoco((f) => {
+          const prox = (f - 1 + total) % total;
+          if (prox !== f) tocarSomNavegacao();
+          return prox;
+        });
+      } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        setFoco((f) => {
+          const prox = (f + 1) % total;
+          if (prox !== f) tocarSomNavegacao();
+          return prox;
+        });
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [fase, pergunta, volumeEfetivo]);
+
   if (fase === "setup") {
     return (
       <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
+        <ControleAudio
+          volume={volume}
+          mutado={mutado}
+          onVolumeChange={(v) => {
+            setVolume(v);
+            if (mutado && v > 0) setMutado(false);
+          }}
+          onToggleMute={() => setMutado((m) => !m)}
+        />
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
           Feira de ciências • Prevenção
         </p>
@@ -617,6 +761,15 @@ function Jogo() {
 
     return (
       <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-8 md:py-12">
+        <ControleAudio
+          volume={volume}
+          mutado={mutado}
+          onVolumeChange={(v) => {
+            setVolume(v);
+            if (mutado && v > 0) setMutado(false);
+          }}
+          onToggleMute={() => setMutado((m) => !m)}
+        />
         {/* Cabeçalho */}
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
@@ -816,6 +969,15 @@ function Jogo() {
 
   return (
     <main className="min-h-screen w-full px-4 pb-10 pt-4 md:px-6 md:pb-12 md:pt-5">
+      <ControleAudio
+        volume={volume}
+        mutado={mutado}
+        onVolumeChange={(v) => {
+          setVolume(v);
+          if (mutado && v > 0) setMutado(false);
+        }}
+        onToggleMute={() => setMutado((m) => !m)}
+      />
       <header className="mx-auto flex max-w-[1500px] items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
@@ -951,7 +1113,12 @@ function Jogo() {
                   <button
                     key={op.texto}
                     onClick={() => responder(op)}
-                    onMouseEnter={() => setFoco(index)}
+                    onMouseEnter={() => {
+                      if (foco !== index) {
+                        tocarSomNavegacao();
+                        setFoco(index);
+                      }
+                    }}
                     className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
                       foco === index
                         ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
@@ -1245,5 +1412,64 @@ function Efeitos({ efeito }: { efeito: Efeito }) {
         </span>
       ))}
     </div>
+  );
+}
+
+function ControleAudio({
+  volume,
+  mutado,
+  onVolumeChange,
+  onToggleMute,
+}: {
+  volume: number;
+  mutado: boolean;
+  onVolumeChange: (v: number) => void;
+  onToggleMute: () => void;
+}) {
+  const [expandido, setExpandido] = useState(false);
+
+  return (
+    <aside
+      aria-label="Controle de áudio"
+      className="fixed top-3 right-3 z-50 flex items-center gap-2 rounded-full border border-border/80 bg-card/95 px-3 py-1.5 shadow-lg backdrop-blur-md transition-all hover:border-primary/50"
+      onMouseEnter={() => setExpandido(true)}
+      onMouseLeave={() => setExpandido(false)}
+    >
+      <button
+        type="button"
+        onClick={onToggleMute}
+        title={mutado || volume === 0 ? "Ativar som" : "Desativar som (mutar)"}
+        className="flex size-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground transition active:scale-95"
+      >
+        {mutado || volume === 0 ? (
+          <VolumeX className="size-4 text-destructive" />
+        ) : volume < 0.5 ? (
+          <Volume1 className="size-4 text-primary" />
+        ) : (
+          <Volume2 className="size-4 text-primary" />
+        )}
+      </button>
+
+      <div
+        className={`flex items-center gap-2 transition-all duration-200 overflow-hidden ${
+          expandido ? "w-28 opacity-100" : "w-0 sm:w-24 opacity-0 sm:opacity-100"
+        }`}
+      >
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={mutado ? 0 : volume}
+          onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
+          aria-label="Volume geral"
+          className="h-1.5 w-16 cursor-pointer rounded-lg bg-muted accent-primary"
+          title={`Volume: ${Math.round((mutado ? 0 : volume) * 100)}%`}
+        />
+        <span className="w-6 text-right font-mono text-[10px] text-muted-foreground select-none">
+          {mutado ? "0%" : `${Math.round(volume * 100)}%`}
+        </span>
+      </div>
+    </aside>
   );
 }
