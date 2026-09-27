@@ -344,36 +344,58 @@ function Jogo() {
   function dispararConfetesVitoria() {
     if (typeof window === "undefined") return;
 
+    const fire =
+      typeof confetti === "function"
+        ? confetti
+        : (confetti as unknown as { default?: typeof confetti })?.default;
+
+    const execFire = (opts: confetti.Options) => {
+      try {
+        if (typeof fire === "function") {
+          void fire(opts);
+        } else if (
+          typeof (window as unknown as { confetti?: typeof confetti }).confetti === "function"
+        ) {
+          void (window as unknown as { confetti: typeof confetti }).confetti(opts);
+        }
+      } catch (err) {
+        console.warn("Erro ao disparar confetes:", err);
+      }
+    };
+
     // Rajada 1: Lado esquerdo explodindo em direção ao centro
-    confetti({
-      particleCount: 65,
+    execFire({
+      particleCount: 70,
       angle: 60,
-      spread: 60,
+      spread: 65,
       origin: { x: 0.05, y: 0.75 },
       colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
-      disableForReducedMotion: true,
+      zIndex: 9999,
+      disableForReducedMotion: false,
     });
 
     // Rajada 2: Lado direito explodindo em direção ao centro (após 250ms)
     setTimeout(() => {
-      confetti({
-        particleCount: 65,
+      execFire({
+        particleCount: 70,
         angle: 120,
-        spread: 60,
+        spread: 65,
         origin: { x: 0.95, y: 0.75 },
         colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
-        disableForReducedMotion: true,
+        zIndex: 9999,
+        disableForReducedMotion: false,
       });
     }, 250);
 
     // Rajada 3: Grande explosão central festiva (após 500ms)
     setTimeout(() => {
-      confetti({
-        particleCount: 110,
+      execFire({
+        particleCount: 130,
         spread: 100,
-        origin: { x: 0.5, y: 0.6 },
+        origin: { x: 0.5, y: 0.55 },
         colors: ["#ffd700", "#ffaa00", "#00f0ff", "#a855f7", "#22c55e"],
-        disableForReducedMotion: true,
+        zIndex: 9999,
+        disableForReducedMotion: false,
       });
     }, 500);
   }
@@ -466,6 +488,28 @@ function Jogo() {
 
   function comecarPartida() {
     setFase("rolar");
+  }
+
+  function testarTelaFinal() {
+    const participantes = nomes
+      .slice(0, quantidade)
+      .map((n, i) => n.trim() || PADRAO[i]!)
+      .map((nome, i) => ({
+        id: i,
+        nome,
+        cor: CORES[i]!,
+        pos: TABULEIRO.length - 1,
+        saude: 70 + (i === 0 ? 25 : 10 - i * 5),
+        dinheiro: 60 + (i === 0 ? 30 : -i * 10),
+        familia: 70 + (i === 0 ? 15 : -i * 5),
+        consciencia: 65 + (i === 0 ? 25 : -i * 10),
+        terminou: true,
+        usouApoio: false,
+        esteveCritico: false,
+        perdaRisco: 0,
+      }));
+    setJogadores(participantes);
+    setFase("fim");
   }
 
   function sortearPergunta(): Pergunta {
@@ -879,6 +923,16 @@ function Jogo() {
             <li>A partida acaba quando todos chegam à casa "Futuro" e o grande campeão é revelado!</li>
           </ul>
         </div>
+
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={testarTelaFinal}
+            className="text-xs text-muted-foreground/80 hover:text-primary transition underline underline-offset-4"
+          >
+            🧪 Atalho de teste: Visualizar Tela Final com Confetes e Campeão
+          </button>
+        </div>
       </main>
     );
   }
@@ -1117,6 +1171,16 @@ function Jogo() {
           <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
             A pontuação total reflete a soma de todas as suas decisões em Saúde, Dinheiro, Família e Consciência.
           </p>
+          <div className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={dispararConfetesVitoria}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/25 active:scale-95 shadow-sm"
+            >
+              <Sparkles className="size-3.5 text-yellow-400" />
+              <span>Soltar confetes novamente 🎊</span>
+            </button>
+          </div>
         </div>
 
         {/* CARD CENTRAL DE DESTAQUE: GRANDE CAMPEÃO */}
