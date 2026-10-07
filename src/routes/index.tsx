@@ -1,22 +1,36 @@
 import confetti from "canvas-confetti";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Activity,
+  AlertTriangle,
   Award,
   BarChart3,
   Brain,
+  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   CircleDollarSign,
-  Dices,
+  Compass,
   Gamepad2,
+  GraduationCap,
+  HeartHandshake,
   HeartPulse,
   Home,
   LifeBuoy,
+  MessageSquare,
+  Moon,
   Play,
+  RefreshCw,
+  ShieldAlert,
   ShieldCheck,
+  Shuffle,
+  Smartphone,
   Sparkles,
   Target,
+  TrendingDown,
   Trophy,
+  User,
   Users,
   Volume1,
   Volume2,
@@ -27,30 +41,27 @@ import {
   PERGUNTAS,
   TABULEIRO,
   calcularFinal,
+  type Casa,
   type Efeito,
   type Opcao,
   type Pergunta,
 } from "@/lib/game-data";
-import somDado from "@/assets/dado-rolando.mp3.asset.json";
-import somPasso from "@/assets/passo-peca.mp3.asset.json";
 import { useGamepad } from "@/hooks/use-gamepad";
-
-const DURACAO_DADO = 1900;
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Jogo da Vida: Escolhas Reais — Drogas e Apostas" },
+      { title: "Jogo da Vida: Escolhas Reais — Multiplayer Simultâneo" },
       {
         name: "description",
         content:
-          "Jogo de tabuleiro digital para 2 a 4 jogadores sobre prevenção ao vício em drogas e em casas de aposta. Responda, avance e descubra seu final.",
+          "Jogo de tabuleiro digital multiplayer simultâneo para 2 a 4 jogadores sobre prevenção ao vício em drogas e em casas de aposta. Responda em conjunto pelo controle, avance e descubra seu final.",
       },
       { property: "og:title", content: "Jogo da Vida: Escolhas Reais" },
       {
         property: "og:description",
         content:
-          "De 2 a 4 jogadores, perguntas reais sobre drogas e apostas, e finais diferentes para cada escolha.",
+          "De 2 a 4 jogadores simultâneos, perguntas reais sobre drogas e apostas em 3 fases de dificuldade.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -59,11 +70,105 @@ export const Route = createFileRoute("/")({
   component: Jogo,
 });
 
+// ==================== CUSTOMIZAÇÃO DE CORES & GÊNERO ====================
+type Genero = "ele" | "ela" | "neutro";
+
+type CorCustomizada = {
+  id: string;
+  nome: string;
+  hex: string;
+  bgSolid: string;
+  bgLight: string;
+  border: string;
+  text: string;
+  glow: string;
+  ring: string;
+};
+
+const CORES_SELECAO: CorCustomizada[] = [
+  {
+    id: "azul",
+    nome: "Azul",
+    hex: "#3b82f6",
+    bgSolid: "bg-blue-600",
+    bgLight: "bg-blue-500/15",
+    border: "border-blue-500",
+    text: "text-blue-400",
+    glow: "shadow-[0_0_15px_rgba(59,130,246,0.5)]",
+    ring: "ring-blue-500",
+  },
+  {
+    id: "verde",
+    nome: "Verde",
+    hex: "#10b981",
+    bgSolid: "bg-emerald-600",
+    bgLight: "bg-emerald-500/15",
+    border: "border-emerald-500",
+    text: "text-emerald-400",
+    glow: "shadow-[0_0_15px_rgba(16,185,129,0.5)]",
+    ring: "ring-emerald-500",
+  },
+  {
+    id: "roxo",
+    nome: "Roxo",
+    hex: "#a855f7",
+    bgSolid: "bg-purple-600",
+    bgLight: "bg-purple-500/15",
+    border: "border-purple-500",
+    text: "text-purple-400",
+    glow: "shadow-[0_0_15px_rgba(168,85,247,0.5)]",
+    ring: "ring-purple-500",
+  },
+  {
+    id: "laranja",
+    nome: "Laranja",
+    hex: "#f97316",
+    bgSolid: "bg-orange-600",
+    bgLight: "bg-orange-500/15",
+    border: "border-orange-500",
+    text: "text-orange-400",
+    glow: "shadow-[0_0_15px_rgba(249,115,22,0.5)]",
+    ring: "ring-orange-500",
+  },
+  {
+    id: "amarelo",
+    nome: "Amarelo",
+    hex: "#eab308",
+    bgSolid: "bg-yellow-500",
+    bgLight: "bg-yellow-500/15",
+    border: "border-yellow-500",
+    text: "text-yellow-400",
+    glow: "shadow-[0_0_15px_rgba(234,179,8,0.5)]",
+    ring: "ring-yellow-500",
+  },
+  {
+    id: "rosa",
+    nome: "Rosa",
+    hex: "#ec4899",
+    bgSolid: "bg-pink-600",
+    bgLight: "bg-pink-500/15",
+    border: "border-pink-500",
+    text: "text-pink-400",
+    glow: "shadow-[0_0_15px_rgba(236,72,153,0.5)]",
+    ring: "ring-pink-500",
+  },
+];
+
+const GENEROS_CONFIG: Record<
+  Genero,
+  { label: string; pronome: string; avatar: string }
+> = {
+  ele: { label: "Ele/Dele", pronome: "Ele", avatar: "👦" },
+  ela: { label: "Ela/Dela", pronome: "Ela", avatar: "👧" },
+  neutro: { label: "Neutro", pronome: "Neutro", avatar: "🧑" },
+};
+
 type Jogador = {
   id: number;
   nome: string;
-  cor: string;
-  pos: number;
+  genero: Genero;
+  cor: CorCustomizada;
+  pos: number; // 0 a 21 (Casas 1 a 22)
   saude: number;
   dinheiro: number;
   familia: number;
@@ -71,79 +176,13 @@ type Jogador = {
   terminou: boolean;
   usouApoio: boolean;
   esteveCritico: boolean;
-  perdaRisco: number;
+  acertos: number;
+  erros: number;
 };
 
-type Fase =
-  | "setup"
-  | "tutorial"
-  | "rolar"
-  | "arremesso"
-  | "rolando"
-  | "movendo"
-  | "pergunta"
-  | "resultado"
-  | "fim";
-
-const CARDS_TUTORIAL = [
-  {
-    numero: 1,
-    tag: "O OBJETIVO DO JOGO",
-    titulo: "O Caminho das Escolhas",
-    texto:
-      "Você e seus amigos percorrerão a jornada da vida. A cada casa, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão suas atitudes. Cada decisão muda o seu destino!",
-    icone: Target,
-    corTag: "text-primary bg-primary/10 border-primary/20",
-    corIcone: "text-primary",
-  },
-  {
-    numero: 2,
-    tag: "OS 4 PILARES DA VIDA",
-    titulo: "Mantenha o Equilíbrio",
-    texto:
-      "Suas escolhas alteram 4 atributos essenciais: Saúde, Dinheiro, Família e Consciência. Se algum deles cair para menos de 30%, a barra entrará em ALERTA VERMELHO. Não deixe seus indicadores zerarem!",
-    icone: BarChart3,
-    corTag: "text-warning bg-warning/10 border-warning/20",
-    corIcone: "text-warning",
-  },
-  {
-    numero: 3,
-    tag: "LANÇANDO O DADO",
-    titulo: "Minigame de Força",
-    texto:
-      "Na sua vez, SEGURE o botão [ X / ◽ ] (ou barra de espaço) para ver a barra de força subir e descer. SOLTE no momento certo para arremessar o dado e avançar pelo mapa!",
-    icone: Dices,
-    corTag: "text-accent bg-accent/10 border-accent/20",
-    corIcone: "text-accent",
-  },
-  {
-    numero: 4,
-    tag: "REDE DE APOIO (REDE DE EMERGÊNCIA)",
-    titulo: "Pedindo Ajuda quando Precisa",
-    texto:
-      "Está em perigo? Se algum atributo estiver abaixo de 25%, pressione [ Y / △ ] no seu controle. Você usará o seu turno para pedir ajuda (Rede de Apoio), recuperando pontos vitais! (Uso único por jogador).",
-    icone: LifeBuoy,
-    corTag: "text-destructive bg-destructive/10 border-destructive/20",
-    corIcone: "text-destructive",
-  },
-  {
-    numero: 5,
-    tag: "O CAMPEÃO E AS CONQUISTAS",
-    titulo: "Chegue ao Futuro!",
-    texto:
-      "A partida termina quando todos chegarem à casa 'Futuro'. No final, quem somar a maior quantidade total de atributos será coroado o Grande Campeão e receberá um prêmio!",
-    icone: Trophy,
-    corTag: "text-warning bg-warning/10 border-warning/20",
-    corIcone: "text-warning",
-  },
-];
-
-const CORES = ["bg-p1", "bg-p2", "bg-p3", "bg-p4"];
-const CORES_TEXTO = ["text-p1", "text-p2", "text-p3", "text-p4"];
-const PADRAO = ["Jogador 1", "Jogador 2", "Jogador 3", "Jogador 4"];
+type Fase = "setup" | "tutorial" | "pergunta_simultanea" | "revelacao" | "fim";
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
-
 const CRITICO = 25;
 const ALERTA = 30;
 
@@ -158,18 +197,21 @@ function aplicar(j: Jogador, e: Efeito): Jogador {
     dinheiro: clamp(j.dinheiro + (e.dinheiro ?? 0)),
     familia: clamp(j.familia + (e.familia ?? 0)),
     consciencia: clamp(j.consciencia + (e.consciencia ?? 0)),
-    perdaRisco:
-      j.perdaRisco +
-      Object.values(e).reduce<number>((s, v) => s + (typeof v === "number" && v < 0 ? -v : 0), 0),
   };
   return { ...novo, esteveCritico: novo.esteveCritico || emCritico(novo) };
 }
 
-function novoJogador(id: number, nome: string): Jogador {
+function novoJogador(
+  id: number,
+  nome: string,
+  genero: Genero,
+  cor: CorCustomizada,
+): Jogador {
   return {
     id,
     nome,
-    cor: CORES[id]!,
+    genero,
+    cor,
     pos: 0,
     saude: 70,
     dinheiro: 60,
@@ -178,7 +220,8 @@ function novoJogador(id: number, nome: string): Jogador {
     terminou: false,
     usouApoio: false,
     esteveCritico: false,
-    perdaRisco: 0,
+    acertos: 0,
+    erros: 0,
   };
 }
 
@@ -188,115 +231,127 @@ function calcularPontuacaoTotal(j: Jogador): number {
 
 function obterAtributoMaisForte(j: Jogador) {
   const atributos = [
-    { nome: "Saúde", chave: "saude" as const, valor: j.saude, cor: "text-success", Icon: HeartPulse },
-    { nome: "Dinheiro", chave: "dinheiro" as const, valor: j.dinheiro, cor: "text-warning", Icon: CircleDollarSign },
-    { nome: "Família", chave: "familia" as const, valor: j.familia, cor: "text-p3", Icon: Users },
-    { nome: "Consciência", chave: "consciencia" as const, valor: j.consciencia, cor: "text-primary", Icon: Brain },
+    { nome: "Saúde", chave: "saude" as const, valor: j.saude, cor: "text-emerald-400", Icon: HeartPulse },
+    { nome: "Dinheiro", chave: "dinheiro" as const, valor: j.dinheiro, cor: "text-yellow-400", Icon: CircleDollarSign },
+    { nome: "Família", chave: "familia" as const, valor: j.familia, cor: "text-blue-400", Icon: Users },
+    { nome: "Consciência", chave: "consciencia" as const, valor: j.consciencia, cor: "text-purple-400", Icon: Brain },
   ];
   return atributos.reduce((maior, a) => (a.valor > maior.valor ? a : maior), atributos[0]!);
 }
 
+const CARDS_TUTORIAL = [
+  {
+    numero: 1,
+    tag: "O OBJETIVO DO JOGO",
+    titulo: "O Caminho das Escolhas",
+    texto:
+      "Você e seus amigos percorrem uma trilha de 22 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
+    icone: Target,
+    corTag: "text-primary bg-primary/10 border-primary/20",
+    corIcone: "text-primary",
+  },
+  {
+    numero: 2,
+    tag: "OS 4 PILARES DA VIDA",
+    titulo: "Mantenha o Equilíbrio",
+    texto:
+      "Suas respostas afetam 4 pilares: Saúde, Dinheiro, Família e Consciência. Se algum deles cair para menos de 30%, entrará em ALERTA VERMELHO. Se cair abaixo de 25%, você pode acionar a Rede de Apoio para se reerguer!",
+    icone: BarChart3,
+    corTag: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    corIcone: "text-yellow-400",
+  },
+  {
+    numero: 3,
+    tag: "RESPOSTAS SIMULTÂNEAS MULTIPLAYER",
+    titulo: "Todos Jogam ao Mesmo Tempo!",
+    texto:
+      "Uma mesma pergunta surge na tela para todos. Cada participante usa seu próprio controle (Comando 0 = P1, Comando 1 = P2, etc.) para escolher secretamente sua alternativa: [ A ], [ B ], [ X ] ou [ Y ]. Quando todos confirmarem, as respostas são reveladas!",
+    icone: Gamepad2,
+    corTag: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+    corIcone: "text-blue-400",
+  },
+  {
+    numero: 4,
+    tag: "SEM DADOS • PROGRESSÃO POR DIFICULDADE",
+    titulo: "Avanço por Consciência",
+    texto:
+      "Não há sorte de dados! Quem faz a escolha consciente avança +2 casas e ganha pontos; quem faz a escolha de risco não avança (+0 casas) e perde atributos. O jogo evolui pela Fase 1 (Fácil), Fase 2 (Médio) até a Fase 3 (Difícil).",
+    icone: Compass,
+    corTag: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+    corIcone: "text-emerald-400",
+  },
+  {
+    numero: 5,
+    tag: "O GRANDE CAMPEÃO & FUTURO",
+    titulo: "Chegue à Casa 22!",
+    texto:
+      "A partida é vencida por quem cruzar o portal do Futuro e mantiver o maior equilíbrio de vida. No encerramento, o Grande Campeão é coroado com troféu dourado, fanfarra e chuva de confetes!",
+    icone: Trophy,
+    corTag: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
+    corIcone: "text-yellow-400",
+  },
+];
+
+// Helper para renderizar ícones do tabuleiro
+function renderIconeCasa(icone: string, className = "size-4") {
+  switch (icone) {
+    case "Compass": return <Compass className={className} />;
+    case "Home": return <Home className={className} />;
+    case "GraduationCap": return <GraduationCap className={className} />;
+    case "Activity": return <Activity className={className} />;
+    case "Users": return <Users className={className} />;
+    case "ShieldCheck": return <ShieldCheck className={className} />;
+    case "Sparkles": return <Sparkles className={className} />;
+    case "Smartphone": return <Smartphone className={className} />;
+    case "Gamepad2": return <Gamepad2 className={className} />;
+    case "AlertTriangle": return <AlertTriangle className={className} />;
+    case "CircleDollarSign": return <CircleDollarSign className={className} />;
+    case "MessageSquare": return <MessageSquare className={className} />;
+    case "Moon": return <Moon className={className} />;
+    case "ShieldAlert": return <ShieldAlert className={className} />;
+    case "HeartPulse": return <HeartPulse className={className} />;
+    case "TrendingDown": return <TrendingDown className={className} />;
+    case "LifeBuoy": return <LifeBuoy className={className} />;
+    case "HeartHandshake": return <HeartHandshake className={className} />;
+    case "Shuffle": return <Shuffle className={className} />;
+    case "Award": return <Award className={className} />;
+    case "Trophy": return <Trophy className={className} />;
+    default: return <Sparkles className={className} />;
+  }
+}
+
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
-  const [cardTutorial, setCardTutorial] = useState(0);
   const [quantidade, setQuantidade] = useState(4);
-  const [nomes, setNomes] = useState<string[]>(["", "", "", ""]);
+  const [cardTutorial, setCardTutorial] = useState(0);
+
+  // Configuração inicial de cada jogador na tela de Setup
+  const [nomes, setNomes] = useState<string[]>(["Lucas", "Marina", "Gabriel", "Beatriz"]);
+  const [generos, setGeneros] = useState<Genero[]>(["ele", "ela", "ele", "ela"]);
+  const [coresSelecionadas, setCoresSelecionadas] = useState<CorCustomizada[]>([
+    CORES_SELECAO[0]!, // Azul
+    CORES_SELECAO[1]!, // Verde
+    CORES_SELECAO[2]!, // Roxo
+    CORES_SELECAO[3]!, // Laranja
+  ]);
+
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
-  const [vez, setVez] = useState(0);
-  const [dado, setDado] = useState<number | null>(null);
-  const [pergunta, setPergunta] = useState<Pergunta | null>(null);
-  const [usadas, setUsadas] = useState<number[]>([]);
-  const [resultado, setResultado] = useState<{ titulo: string; texto: string; efeito: Efeito } | null>(
-    null,
-  );
-  const [flutuante, setFlutuante] = useState<{ id: number; efeito: Efeito; key: number } | null>(null);
+  const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
+  const [perguntasUsadas, setPerguntasUsadas] = useState<number[]>([]);
+  const [respostasRodada, setRespostasRodada] = useState<Record<number, number>>({});
   const [modalApoio, setModalApoio] = useState<string | null>(null);
-  const intervaloDado = useRef<ReturnType<typeof setInterval> | null>(null);
-  const esperaDado = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const esperasMovimento = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const audioDado = useRef<HTMLAudioElement | null>(null);
-  const fadeDado = useRef<ReturnType<typeof setInterval> | null>(null);
-  const audioPasso = useRef<HTMLAudioElement | null>(null);
-  const [foco, setFoco] = useState(0);
+
+  // Áudio e volume
   const [volume, setVolume] = useState(0.8);
   const [mutado, setMutado] = useState(false);
   const volumeEfetivo = mutado ? 0 : volume;
-
-  const forcaBarra = useRef<HTMLDivElement | null>(null);
-  const forcaPercento = useRef<HTMLParagraphElement | null>(null);
-  const [segurando, setSegurando] = useState(false);
-
-  const audioTensao = useRef<HTMLAudioElement | null>(null);
   const audioFinal = useRef<HTMLAudioElement | null>(null);
-
-  function tocarSomPasso() {
-    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
-    const url = somPasso.url || "/passo-peca.mp3";
-    if (!audioPasso.current) audioPasso.current = new Audio(url);
-    const a = audioPasso.current.cloneNode() as HTMLAudioElement;
-    a.volume = Math.min(1, 0.8 * volumeEfetivo);
-    void a.play().catch((err) => console.warn("Erro ao reproduzir som do passo:", err));
-  }
-
-  function tocarSomDado() {
-    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
-    const url = somDado.url || "/dado-rolando.mp3";
-    if (!audioDado.current) audioDado.current = new Audio(url);
-    const a = audioDado.current;
-    if (fadeDado.current) {
-      clearInterval(fadeDado.current);
-      fadeDado.current = null;
-    }
-    a.pause();
-    a.currentTime = 0;
-    a.volume = Math.min(1, 1 * volumeEfetivo);
-    void a.play().catch((err) => console.warn("Erro ao reproduzir som do dado:", err));
-  }
-
-  function pararSomDado() {
-    const a = audioDado.current;
-    if (!a) return;
-    if (fadeDado.current) clearInterval(fadeDado.current);
-    fadeDado.current = setInterval(() => {
-      const v = a.volume - 0.15;
-      if (v <= 0) {
-        a.pause();
-        a.currentTime = 0;
-        a.volume = 1;
-        if (fadeDado.current) clearInterval(fadeDado.current);
-        fadeDado.current = null;
-      } else {
-        a.volume = v;
-      }
-    }, 25);
-  }
 
   function tocarSomNavegacao() {
     if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
     const a = new Audio("/botao-navegacao.mp3");
     a.volume = Math.min(1, 0.6 * volumeEfetivo);
     void a.play().catch(() => undefined);
-  }
-
-  function tocarSomTensao() {
-    if (typeof Audio === "undefined" || volumeEfetivo <= 0) return;
-    if (!audioTensao.current) {
-      audioTensao.current = new Audio("/audio-barradodado.mp3");
-      audioTensao.current.loop = true;
-    }
-    const a = audioTensao.current;
-    a.volume = Math.min(1, 0.75 * volumeEfetivo);
-    if (a.paused) {
-      a.currentTime = 0;
-      void a.play().catch(() => undefined);
-    }
-  }
-
-  function pararSomTensao() {
-    const a = audioTensao.current;
-    if (!a) return;
-    a.pause();
-    a.currentTime = 0;
   }
 
   function tocarSomRespostaBoa() {
@@ -327,23 +382,8 @@ function Jogo() {
     a.currentTime = 0;
   }
 
-  const atual = jogadores[vez]!;
-
-  useEffect(() => {
-    return () => {
-      if (intervaloDado.current) clearInterval(intervaloDado.current);
-      if (esperaDado.current) clearTimeout(esperaDado.current);
-      esperasMovimento.current.forEach(clearTimeout);
-      if (fadeDado.current) clearInterval(fadeDado.current);
-      audioDado.current?.pause();
-      pararSomTensao();
-      pararSomFinal();
-    };
-  }, []);
-
   function dispararConfetesVitoria() {
     if (typeof window === "undefined") return;
-
     const fire =
       typeof confetti === "function"
         ? confetti
@@ -363,31 +403,31 @@ function Jogo() {
       }
     };
 
-    // Rajada 1: Lado esquerdo explodindo em direção ao centro
+    // Rajada 1: Esquerda
     execFire({
       particleCount: 70,
       angle: 60,
       spread: 65,
       origin: { x: 0.05, y: 0.75 },
-      colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
+      colors: ["#3b82f6", "#10b981", "#a855f7", "#f97316", "#eab308"],
       zIndex: 9999,
       disableForReducedMotion: false,
     });
 
-    // Rajada 2: Lado direito explodindo em direção ao centro (após 250ms)
+    // Rajada 2: Direita (+250ms)
     setTimeout(() => {
       execFire({
         particleCount: 70,
         angle: 120,
         spread: 65,
         origin: { x: 0.95, y: 0.75 },
-        colors: ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#3b82f6"],
+        colors: ["#3b82f6", "#10b981", "#a855f7", "#f97316", "#eab308"],
         zIndex: 9999,
         disableForReducedMotion: false,
       });
     }, 250);
 
-    // Rajada 3: Grande explosão central festiva (após 500ms)
+    // Rajada 3: Centro (+500ms)
     setTimeout(() => {
       execFire({
         particleCount: 130,
@@ -421,389 +461,261 @@ function Jogo() {
         void audioFinal.current.play().catch(() => undefined);
       }
     }
-    if (audioTensao.current) {
-      audioTensao.current.volume = Math.min(1, 0.75 * volumeEfetivo);
-    }
   }, [volumeEfetivo, fase]);
 
-  function mostrarDeltas(id: number, efeito: Efeito) {
-    const key = Date.now();
-    setFlutuante({ id, efeito, key });
-    setTimeout(() => setFlutuante((f) => (f && f.key === key ? null : f)), 1400);
+  // Sorteia pergunta adequada à fase de dificuldade do tabuleiro
+  function sortearPerguntaParaFase(faseDificuldade: 1 | 2 | 3): Pergunta {
+    const doNivel = PERGUNTAS.filter((p) => p.fase === faseDificuldade && !perguntasUsadas.includes(p.id));
+    const pool = doNivel.length
+      ? doNivel
+      : PERGUNTAS.filter((p) => !perguntasUsadas.includes(p.id));
+    const finalPool = pool.length ? pool : PERGUNTAS;
+    const escolhida = finalPool[Math.floor(Math.random() * finalPool.length)]!;
+    setPerguntasUsadas((antigas) => [...antigas, escolhida.id]);
+    return escolhida;
   }
 
-  function buscarAjuda() {
-    const menor = (["saude", "dinheiro", "familia", "consciencia"] as const).reduce((a, b) =>
-      atual[a] <= atual[b] ? a : b,
-    );
-    const efeito: Efeito = { [menor]: 30 };
-    const lista = jogadores.map((j) => {
-      if (j.id !== atual.id) return j;
-      const atualizado: Jogador = { ...j, usouApoio: true, esteveCritico: true };
-      atualizado[menor] = clamp(j[menor] + 30);
-      return atualizado;
-    });
-    setJogadores(lista);
-    mostrarDeltas(atual.id, efeito);
-    setModalApoio(
-      "Você buscou apoio na sua rede de contatos (família/profissionais). Pedir ajuda não é fraqueza: é o passo mais forte de quem quer recomeçar.",
-    );
-  }
-
-  function fecharApoio() {
-    setModalApoio(null);
-    proximoTurno(jogadores);
-  }
-
+  // Iniciar partida após criação dos personagens
   function iniciar() {
-    setJogadores(
-      nomes.slice(0, quantidade).map((n, i) => novoJogador(i, n.trim() || PADRAO[i]!)),
+    const novos = Array.from({ length: quantidade }, (_, i) =>
+      novoJogador(
+        i,
+        nomes[i]?.trim() || `Jogador ${i + 1}`,
+        generos[i] || "neutro",
+        coresSelecionadas[i] || CORES_SELECAO[i % CORES_SELECAO.length]!,
+      ),
     );
-    setVez(0);
-    setUsadas([]);
-    setDado(null);
-    setResultado(null);
+    setJogadores(novos);
     setCardTutorial(0);
     setFase("tutorial");
   }
 
-  function tutorialAnterior() {
-    setCardTutorial((c) => {
-      const novo = Math.max(0, c - 1);
-      if (novo !== c) tocarSomNavegacao();
-      return novo;
-    });
-  }
-
-  function tutorialProximo() {
-    setCardTutorial((c) => {
-      if (c >= CARDS_TUTORIAL.length - 1) {
-        comecarPartida();
-        return c;
-      }
-      tocarSomNavegacao();
-      return c + 1;
-    });
-  }
-
   function comecarPartida() {
-    setFase("rolar");
+    setPerguntasUsadas([]);
+    const primeira = sortearPerguntaParaFase(1);
+    setPerguntaAtual(primeira);
+    setRespostasRodada({});
+    setFase("pergunta_simultanea");
   }
 
-  function testarTelaFinal() {
-    const participantes = nomes
-      .slice(0, quantidade)
-      .map((n, i) => n.trim() || PADRAO[i]!)
-      .map((nome, i) => ({
-        id: i,
-        nome,
-        cor: CORES[i]!,
-        pos: TABULEIRO.length - 1,
-        saude: 70 + (i === 0 ? 25 : 10 - i * 5),
-        dinheiro: 60 + (i === 0 ? 30 : -i * 10),
-        familia: 70 + (i === 0 ? 15 : -i * 5),
-        consciencia: 65 + (i === 0 ? 25 : -i * 10),
-        terminou: true,
-        usouApoio: false,
-        esteveCritico: false,
-        perdaRisco: 0,
-      }));
-    setJogadores(participantes);
-    setFase("fim");
+  // Registrar resposta de um jogador específico (0 a 3)
+  function responderSimultaneo(jogadorId: number, opcaoIndex: 0 | 1 | 2 | 3) {
+    if (fase !== "pergunta_simultanea") return;
+    if (jogadorId >= jogadores.length) return;
+
+    setRespostasRodada((prev) => {
+      if (prev[jogadorId] === opcaoIndex) return prev;
+      tocarSomNavegacao();
+      return { ...prev, [jogadorId]: opcaoIndex };
+    });
   }
 
-  function sortearPergunta(): Pergunta {
-    const livres = PERGUNTAS.filter((p) => !usadas.includes(p.id));
-    const pool = livres.length ? livres : PERGUNTAS;
-    const p = pool[Math.floor(Math.random() * pool.length)]!;
-    setUsadas((u) => (livres.length ? [...u, p.id] : [p.id]));
-    return p;
+  const todosResponderam =
+    jogadores.length > 0 &&
+    jogadores.every((j) => respostasRodada[j.id] !== undefined);
+
+  // Revelação de todas as escolhas feitas
+  function revelarRespostas() {
+    if (fase !== "pergunta_simultanea" || !perguntaAtual) return;
+
+    let houveEscolhaBoa = false;
+    const atualizados = jogadores.map((j) => {
+      const opcaoIndex = respostasRodada[j.id];
+      if (opcaoIndex === undefined) return j;
+
+      const opcao = perguntaAtual.opcoes[opcaoIndex];
+      if (!opcao) return j;
+
+      if (opcao.correta) houveEscolhaBoa = true;
+
+      // Avança +2 casas se acertou; avança 0 se errou
+      const novaPos = opcao.correta ? Math.min(TABULEIRO.length - 1, j.pos + 2) : j.pos;
+      const terminou = novaPos >= TABULEIRO.length - 1;
+
+      const jComEfeito = aplicar(j, opcao.efeito);
+      return {
+        ...jComEfeito,
+        pos: novaPos,
+        terminou: j.terminou || terminou,
+        acertos: j.acertos + (opcao.correta ? 1 : 0),
+        erros: j.erros + (opcao.correta ? 0 : 1),
+      };
+    });
+
+    setJogadores(atualizados);
+    if (houveEscolhaBoa) {
+      tocarSomRespostaBoa();
+    }
+    setFase("revelacao");
   }
 
-  function proximoTurno(lista: Jogador[]) {
-    if (lista.every((j) => j.terminou)) {
+  // Avançar para a próxima rodada
+  function proximaRodada() {
+    // Se alguém chegou ao fim (casa 22)
+    if (jogadores.some((j) => j.pos >= TABULEIRO.length - 1 || j.terminou)) {
       setFase("fim");
       return;
     }
-    let i = vez;
-    do {
-      i = (i + 1) % lista.length;
-    } while (lista[i]!.terminou);
-    setVez(i);
-    setDado(null);
-    setResultado(null);
-    setFase("rolar");
+
+    // Identifica a fase do mapa pela posição máxima dos jogadores
+    const maxPos = Math.max(...jogadores.map((j) => j.pos));
+    const faseDificuldade: 1 | 2 | 3 = maxPos < 6 ? 1 : maxPos < 14 ? 2 : 3;
+
+    const prox = sortearPerguntaParaFase(faseDificuldade);
+    setPerguntaAtual(prox);
+    setRespostasRodada({});
+    setFase("pergunta_simultanea");
   }
 
-  function concluirMovimento(destino: number, lista: Jogador[]) {
-    const casa = TABULEIRO[destino]!;
+  // Acionamento de emergência da Rede de Apoio
+  function acionarRedeApoio(jogadorId: number) {
+    const j = jogadores[jogadorId];
+    if (!j || j.usouApoio || !emCritico(j)) return;
 
-    if (casa.tipo === "pergunta") {
-      setPergunta(sortearPergunta());
-      setFase("pergunta");
-      return;
-    }
-    if (casa.tipo === "final") {
-      const finalizados = lista.map((j) => (j.id === atual.id ? { ...j, terminou: true } : j));
-      setJogadores(finalizados);
-      setResultado({
-        titulo: "Chegada",
-        texto: `${atual.nome} chegou ao fim do caminho. O final será revelado no encerramento.`,
-        efeito: {},
-      });
-      setFase("resultado");
-      return;
-    }
-    setResultado({ titulo: "Início", texto: "Você continua no ponto de partida.", efeito: {} });
-    setFase("resultado");
-  }
-
-  function concluirRolagem(valor: number) {
-    setDado(valor);
-    setFase("movendo");
-    const origem = atual.pos;
-    const destino = Math.min(origem + valor, TABULEIRO.length - 1);
-    const passos = destino - origem;
-
-    esperasMovimento.current.forEach(clearTimeout);
-    esperasMovimento.current = [];
-
-    for (let passo = 1; passo <= passos; passo += 1) {
-      const novaPosicao = origem + passo;
-      const espera = setTimeout(() => {
-        tocarSomPasso();
-        setJogadores((listaAtual) =>
-          listaAtual.map((j) => (j.id === atual.id ? { ...j, pos: novaPosicao } : j)),
-        );
-      }, passo * 320);
-      esperasMovimento.current.push(espera);
-    }
-
-    const esperaFinal = setTimeout(() => {
-      const lista = jogadores.map((j) => (j.id === atual.id ? { ...j, pos: destino } : j));
-      setJogadores(lista);
-      concluirMovimento(destino, lista);
-      esperasMovimento.current = [];
-    }, passos * 320 + 420);
-    esperasMovimento.current.push(esperaFinal);
-  }
-
-  function abrirArremesso() {
-    if (fase !== "rolar") return;
-    setSegurando(false);
-    setFase("arremesso");
-  }
-
-  function soltarForca() {
-    if (fase !== "arremesso" || !segurando) return;
-    setSegurando(false);
-    pararSomTensao();
-    rolar();
-  }
-
-  const ajudaDisponivel = Boolean(atual) && !atual.usouApoio && emCritico(atual);
-
-  function rolar() {
-    if (fase !== "rolar" && fase !== "arremesso") return;
-    const valorFinal = 1 + Math.floor(Math.random() * 6);
-    setFase("rolando");
-    setDado(1 + Math.floor(Math.random() * 6));
-    tocarSomDado();
-
-    intervaloDado.current = setInterval(() => {
-      setDado(1 + Math.floor(Math.random() * 6));
-    }, 90);
-
-    esperaDado.current = setTimeout(() => {
-      if (intervaloDado.current) clearInterval(intervaloDado.current);
-      intervaloDado.current = null;
-      pararSomDado();
-      concluirRolagem(valorFinal);
-    }, DURACAO_DADO);
-  }
-
-  function responder(op: Opcao) {
-    const lista = jogadores.map((j) => (j.id === atual.id ? aplicar(j, op.efeito) : j));
-    setJogadores(lista);
-    mostrarDeltas(atual.id, op.efeito);
-
-    const somaEfeitos = Object.values(op.efeito).reduce<number>(
-      (acc, v) => acc + (typeof v === "number" ? v : 0),
-      0,
+    const menorAtributo = (["saude", "dinheiro", "familia", "consciencia"] as const).reduce(
+      (a, b) => (j[a] <= j[b] ? a : b),
     );
-    if (somaEfeitos > 0) {
-      tocarSomRespostaBoa();
-    }
 
-    setResultado({ titulo: "Consequência", texto: op.feedback, efeito: op.efeito });
-    setFase("resultado");
-  }
+    const atualizados = jogadores.map((item) => {
+      if (item.id !== jogadorId) return item;
+      const att = { ...item, usouApoio: true, esteveCritico: true };
+      att[menorAtributo] = clamp(item[menorAtributo] + 30);
+      return att;
+    });
 
-  function continuar() {
-    proximoTurno(jogadores);
+    setJogadores(atualizados);
+    setModalApoio(
+      `${j.nome} acionou a Rede de Apoio! Pedir ajuda profissional (CAPS-AD / UBS) ou familiar restabeleceu +30 pontos vitais em ${menorAtributo.toUpperCase()}.`,
+    );
   }
 
   function reiniciar() {
     pararSomFinal();
-    pararSomTensao();
     setFase("setup");
     setCardTutorial(0);
     setJogadores([]);
-    setNomes(["", "", "", ""]);
-    setQuantidade(4);
+    setRespostasRodada({});
+    setPerguntaAtual(null);
   }
 
-  useEffect(() => {
-    setFoco(0);
-  }, [fase, vez, pergunta]);
+  // Atalho para teste rápido da tela final
+  function testarTelaFinal() {
+    const mock = Array.from({ length: quantidade }, (_, i) => {
+      const base = novoJogador(
+        i,
+        nomes[i]?.trim() || `Jogador ${i + 1}`,
+        generos[i] || "neutro",
+        coresSelecionadas[i] || CORES_SELECAO[i]!,
+      );
+      return {
+        ...base,
+        pos: TABULEIRO.length - 1,
+        saude: 70 + (i === 0 ? 25 : -i * 10),
+        dinheiro: 60 + (i === 0 ? 30 : -i * 15),
+        familia: 70 + (i === 0 ? 20 : -i * 5),
+        consciencia: 65 + (i === 0 ? 25 : -i * 10),
+        terminou: true,
+        acertos: 5 - i,
+        erros: i,
+      };
+    });
+    setJogadores(mock);
+    setFase("fim");
+  }
 
-  useEffect(() => {
-    if (fase !== "arremesso" || !segurando) return;
-    let frame = 0;
-    const inicio = performance.now();
-    const CICLO = 1500; // 0 -> 100 -> 0 em 1,5 s, movimento contínuo
-    const loop = () => {
-      const t = (performance.now() - inicio) % CICLO;
-      const metade = CICLO / 2;
-      const valor = t < metade ? (t / metade) * 100 : (1 - (t - metade) / metade) * 100;
-      const v = Math.round(valor);
-      if (forcaBarra.current) forcaBarra.current.style.width = `${v}%`;
-      if (forcaPercento.current) forcaPercento.current.textContent = `${v}%`;
-      frame = requestAnimationFrame(loop);
-    };
-    frame = requestAnimationFrame(loop);
-    return () => {
-      cancelAnimationFrame(frame);
-      if (forcaBarra.current) forcaBarra.current.style.width = "0%";
-      if (forcaPercento.current) forcaPercento.current.textContent = "0%";
-    };
-  }, [fase, segurando]);
-
-  useEffect(() => {
-    if (fase !== "arremesso") return;
-    const down = (e: KeyboardEvent) => {
-      if (e.code !== "Space" || e.repeat) return;
-      e.preventDefault();
-      setSegurando(true);
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code !== "Space") return;
-      e.preventDefault();
-      soltarForca();
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, [fase, segurando]);
-
-  // SUPORTE A MÚLTIPLOS CONTROLES COM BLOQUEIO DE TURNO:
-  // - Gamepad 0 = Jogador 1 (id: 0)
-  // - Gamepad 1 = Jogador 2 (id: 1)
-  // - Gamepad 2 = Jogador 3 (id: 2)
-  // - Gamepad 3 = Jogador 4 (id: 3)
-  // Bloqueio de turno: APENAS o controle do jogador ativo responde durante as fases de jogo!
-  const {
-    conectado: controleConectado,
-    controlesConectados,
-    controleAtivoConectado,
-    quantidadeConectados,
-  } = useGamepad({
-    jogadorAtivoId: atual ? atual.id : 0,
-    bloqueioTurno: fase !== "setup" && fase !== "tutorial" && fase !== "fim",
+  // ==================== INTEGRAÇÃO COM MÚLTIPLOS CONTROLES ====================
+  const { controlesConectados, quantidadeConectados } = useGamepad({
+    onPlayerAnswer: (jogadorId, opcao) => {
+      if (fase === "pergunta_simultanea") {
+        responderSimultaneo(jogadorId, opcao);
+      }
+    },
+    onPlayerAjuda: (jogadorId) => {
+      acionarRedeApoio(jogadorId);
+    },
     onConfirm: () => {
       if (modalApoio) {
-        fecharApoio();
+        setModalApoio(null);
         return;
       }
       if (fase === "setup") iniciar();
       else if (fase === "tutorial") comecarPartida();
-      else if (fase === "rolar") abrirArremesso();
-      else if (fase === "pergunta" && pergunta) {
-        const op = pergunta.opcoes[foco] ?? pergunta.opcoes[0];
-        if (op) responder(op);
-      } else if (fase === "resultado") continuar();
+      else if (fase === "pergunta_simultanea" && todosResponderam) revelarRespostas();
+      else if (fase === "revelacao") proximaRodada();
       else if (fase === "fim") reiniciar();
     },
     onMove: (direcao) => {
       if (fase === "tutorial") {
         if (direcao === "esquerda" || direcao === "cima") {
-          tutorialAnterior();
+          setCardTutorial((c) => Math.max(0, c - 1));
+          tocarSomNavegacao();
         } else if (direcao === "direita" || direcao === "baixo") {
-          tutorialProximo();
-        }
-        return;
-      }
-      if (fase !== "pergunta" || !pergunta) return;
-      const total = pergunta.opcoes.length;
-      const passo = direcao === "cima" || direcao === "esquerda" ? -1 : 1;
-      setFoco((f) => {
-        const prox = (f + passo + total) % total;
-        if (prox !== f) {
+          setCardTutorial((c) => Math.min(CARDS_TUTORIAL.length - 1, c + 1));
           tocarSomNavegacao();
         }
-        return prox;
-      });
-    },
-    onAjuda: () => {
-      if (modalApoio || fase !== "rolar" || !ajudaDisponivel) return;
-      buscarAjuda();
-    },
-    onForcaDown: () => {
-      if (fase === "arremesso") setSegurando(true);
-    },
-    onForcaUp: () => {
-      soltarForca();
+      }
     },
   });
 
+  // Atalhos de teclado para teste rápido e acessibilidade
   useEffect(() => {
-    if (fase !== "tutorial") return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-        e.preventDefault();
-        tutorialAnterior();
-      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-        e.preventDefault();
-        tutorialProximo();
-      } else if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-        e.preventDefault();
-        comecarPartida();
+      if (modalApoio && (e.key === "Enter" || e.key === "Escape")) {
+        setModalApoio(null);
+        return;
+      }
+
+      if (fase === "setup" && e.key === "Enter") {
+        iniciar();
+      } else if (fase === "tutorial") {
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+          setCardTutorial((c) => Math.max(0, c - 1));
+          tocarSomNavegacao();
+        } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+          setCardTutorial((c) => Math.min(CARDS_TUTORIAL.length - 1, c + 1));
+          tocarSomNavegacao();
+        } else if (e.key === "Enter" || e.key === " ") {
+          comecarPartida();
+        }
+      } else if (fase === "pergunta_simultanea") {
+        // P1: Teclas 1, 2, 3, 4
+        if (e.key === "1") responderSimultaneo(0, 0);
+        else if (e.key === "2") responderSimultaneo(0, 1);
+        else if (e.key === "3") responderSimultaneo(0, 2);
+        else if (e.key === "4") responderSimultaneo(0, 3);
+        // P2: Teclas 7, 8, 9, 0
+        else if (e.key === "7") responderSimultaneo(1, 0);
+        else if (e.key === "8") responderSimultaneo(1, 1);
+        else if (e.key === "9") responderSimultaneo(1, 2);
+        else if (e.key === "0") responderSimultaneo(1, 3);
+        // Enter revela se todos responderam
+        else if (e.key === "Enter" && todosResponderam) {
+          revelarRespostas();
+        }
+      } else if (fase === "revelacao" && (e.key === "Enter" || e.key === " ")) {
+        proximaRodada();
+      } else if (fase === "fim" && (e.key === "Enter" || e.key === " ")) {
+        reiniciar();
       }
     };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fase]);
+  }, [fase, todosResponderam, modalApoio]);
 
-  useEffect(() => {
-    if (fase !== "pergunta" || !pergunta) return;
-    const onKey = (e: KeyboardEvent) => {
-      const total = pergunta.opcoes.length;
-      if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-        e.preventDefault();
-        setFoco((f) => {
-          const prox = (f - 1 + total) % total;
-          if (prox !== f) tocarSomNavegacao();
-          return prox;
-        });
-      } else if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-        e.preventDefault();
-        setFoco((f) => {
-          const prox = (f + 1) % total;
-          if (prox !== f) tocarSomNavegacao();
-          return prox;
-        });
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [fase, pergunta, volumeEfetivo]);
+  // Fase máxima atual dos jogadores no tabuleiro
+  const faseMapaAtual = useMemo(() => {
+    if (!jogadores.length) return 1;
+    const max = Math.max(...jogadores.map((j) => j.pos));
+    if (max < 6) return 1;
+    if (max < 14) return 2;
+    return 3;
+  }, [jogadores]);
 
+  // ==================== TELA 1: SETUP & CUSTOMIZAÇÃO ====================
   if (fase === "setup") {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-2xl px-4 py-10">
+      <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-8 md:py-12">
         <ControleAudio
           volume={volume}
           mutado={mutado}
@@ -813,131 +725,184 @@ function Jogo() {
           }}
           onToggleMute={() => setMutado((m) => !m)}
         />
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-          Feira de ciências • Prevenção
-        </p>
-        <h1 className="mt-3 text-5xl leading-none text-foreground">
-          Jogo da Vida:
-          <br />
-          <span className="text-accent">Escolhas Reais</span>
-        </h1>
-        <p className="mt-4 text-sm text-muted-foreground">
-          De dois a quatro jogadores percorrem o mesmo caminho da vida. A cada casa, uma pergunta sobre drogas
-          ou casas de aposta. Suas escolhas mudam saúde, dinheiro, família e consciência — e cada um
-          termina com um final diferente.
-        </p>
 
-        <div className="panel mt-8 p-5">
-          <h2 className="text-2xl">Quem vai jogar?</h2>
-          <div className="mt-4 grid grid-cols-3 gap-2" aria-label="Quantidade de jogadores">
-            {[2, 3, 4].map((total) => (
-              <button
-                key={total}
-                type="button"
-                onClick={() => setQuantidade(total)}
-                aria-pressed={quantidade === total}
-                className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-                  quantidade === total
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-secondary text-muted-foreground hover:border-primary hover:text-foreground"
-                }`}
-              >
-                {total} jogadores
-              </button>
-            ))}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Gamepad2 className="size-3.5" />
+            <span>Multiplayer Simultâneo • Feira de Ciências</span>
           </div>
-          <div className="mt-4 space-y-3">
-            {nomes.slice(0, quantidade).map((n, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className={`size-5 shrink-0 rounded-full ${CORES[i]}`} />
-                <input
-                  value={n}
-                  onChange={(e) =>
-                    setNomes((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))
-                  }
-                  placeholder={PADRAO[i]}
-                  className="w-full rounded-lg border border-input bg-secondary px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            ))}
-          </div>
+          <h1 className="mt-3 font-display text-4xl md:text-5xl text-foreground">
+            Jogo da Vida: <span className="text-primary">Escolhas Reais</span>
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-xl mx-auto">
+            Customizem seus personagens, peguem seus controles e joguem todos ao mesmo tempo! Suas escolhas determinam o avanço no tabuleiro e o seu futuro.
+          </p>
+        </div>
 
-          {/* Painel informativo de comandos conectados */}
-          <div className="mt-6 rounded-lg border border-border bg-secondary/60 p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Gamepad2 className="size-4 text-primary" />
-                Comandos Gamepad Conectados:
-              </span>
-              <span className="text-xs font-bold text-primary">
-                {quantidadeConectados} de {quantidade} detectado(s)
-              </span>
+        {/* Quantidade de Jogadores */}
+        <div className="panel mt-8 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-4">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Quantos jogadores na partida?</h2>
+              <p className="text-xs text-muted-foreground">Todos jogam simultaneamente com seus respectivos controles</p>
             </div>
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[0, 1, 2, 3].map((slot) => {
-                const ativoNoJogo = slot < quantidade;
-                const conectado = controlesConectados[slot];
-                return (
-                  <div
-                    key={slot}
-                    className={`rounded-md border p-2 text-center text-xs transition ${
-                      !ativoNoJogo
-                        ? "opacity-30 border-dashed border-border"
-                        : conectado
-                        ? "border-success/60 bg-success/10 text-foreground"
-                        : "border-border bg-secondary text-muted-foreground"
-                    }`}
-                  >
-                    <p className="font-bold">Comando {slot}</p>
-                    <p className="text-[10px] opacity-80">Jogador {slot + 1}</p>
+            <div className="flex gap-2">
+              {[2, 3, 4].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setQuantidade(n)}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    quantidade === n
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
+                      : "bg-secondary text-secondary-foreground hover:bg-muted"
+                  }`}
+                >
+                  {n} Jogadores
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cards de Customização dos Jogadores */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Array.from({ length: quantidade }, (_, i) => {
+              const corAtual = coresSelecionadas[i] || CORES_SELECAO[i % CORES_SELECAO.length]!;
+              const generoAtual = generos[i] || "neutro";
+              const conectado = Boolean(controlesConectados[i]);
+
+              return (
+                <div
+                  key={i}
+                  className={`relative rounded-xl border-2 p-4 transition-all duration-300 bg-card/60 backdrop-blur-sm ${corAtual.border} ${corAtual.glow}`}
+                >
+                  {/* Cabeçalho do Card com Comando */}
+                  <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <span className={`size-8 rounded-full flex items-center justify-center text-lg ${corAtual.bgLight} border ${corAtual.border}`}>
+                        {GENEROS_CONFIG[generoAtual].avatar}
+                      </span>
+                      <div>
+                        <span className="font-bold text-sm text-foreground">P{i + 1}</span>
+                        <span className="text-xs text-muted-foreground ml-1.5">• Comando {i}</span>
+                      </div>
+                    </div>
                     <span
-                      className={`inline-block mt-1 text-[9px] font-semibold px-2 py-0.5 rounded ${
-                        conectado ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        conectado
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                          : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {conectado ? "● Conectado" : "○ Desconectado"}
+                      {conectado ? "● Controle Conectado" : "○ Teclado / Mouse"}
                     </span>
                   </div>
-                );
-              })}
-            </div>
-            <p className="mt-2.5 text-[11px] text-muted-foreground">
-              Regra de bloqueio de turno ativa: cada jogador responderá exclusivamente pelo seu comando correspondente.
-            </p>
+
+                  {/* Campo de Nome */}
+                  <div className="mt-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                      Nome do Participante
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={18}
+                      value={nomes[i] || ""}
+                      onChange={(e) => {
+                        const copia = [...nomes];
+                        copia[i] = e.target.value;
+                        setNomes(copia);
+                      }}
+                      placeholder={`Jogador ${i + 1}`}
+                      className="w-full rounded-md border border-border bg-secondary/80 px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Seletor de Gênero / Pronome */}
+                  <div className="mt-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                      Avatar / Pronome
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(["ele", "ela", "neutro"] as Genero[]).map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => {
+                            const copia = [...generos];
+                            copia[i] = g;
+                            setGeneros(copia);
+                          }}
+                          className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold border transition ${
+                            generoAtual === g
+                              ? `${corAtual.bgSolid} text-white border-transparent shadow-sm`
+                              : "border-border bg-secondary/60 text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <span>{GENEROS_CONFIG[g].avatar}</span>
+                          <span>{GENEROS_CONFIG[g].label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Seletor de Cor */}
+                  <div className="mt-3">
+                    <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                      Cor do Jogador
+                    </label>
+                    <div className="flex items-center justify-between gap-1">
+                      {CORES_SELECAO.map((cor) => {
+                        const selecionada = corAtual.id === cor.id;
+                        return (
+                          <button
+                            key={cor.id}
+                            type="button"
+                            onClick={() => {
+                              const copia = [...coresSelecionadas];
+                              copia[i] = cor;
+                              setCoresSelecionadas(copia);
+                            }}
+                            title={cor.nome}
+                            style={{ backgroundColor: cor.hex }}
+                            className={`size-7 rounded-full transition-transform flex items-center justify-center text-white ${
+                              selecionada ? "scale-110 ring-2 ring-white shadow-lg" : "opacity-70 hover:opacity-100"
+                            }`}
+                          >
+                            {selecionada && <Check className="size-3.5 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <button
-            onClick={iniciar}
-            className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-display text-xl tracking-wide text-primary-foreground transition hover:opacity-90"
-          >
-            Começar partida
-          </button>
-        </div>
+          {/* Botão de Iniciar */}
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={iniciar}
+              className="w-full max-w-md rounded-xl bg-primary px-6 py-4 font-display text-xl tracking-wider text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] hover:opacity-95 active:scale-[0.99]"
+            >
+              Começar Partida
+            </button>
 
-        <div className="panel mt-4 p-5 text-sm text-muted-foreground">
-          <h3 className="text-xl text-foreground">Como jogar</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>Na sua vez, role o dado no seu respectivo comando e avance pelo mapa.</li>
-            <li>Casa de pergunta: escolha uma resposta e veja a consequência real.</li>
-            <li>Se saúde, dinheiro ou família chegarem perto de zero, seu final muda.</li>
-            <li>A partida acaba quando todos chegam à casa "Futuro" e o grande campeão é revelado!</li>
-          </ul>
-        </div>
-
-        <div className="mt-4 text-center">
-          <button
-            type="button"
-            onClick={testarTelaFinal}
-            className="text-xs text-muted-foreground/80 hover:text-primary transition underline underline-offset-4"
-          >
-            🧪 Atalho de teste: Visualizar Tela Final com Confetes e Campeão
-          </button>
+            <button
+              type="button"
+              onClick={testarTelaFinal}
+              className="text-xs text-muted-foreground hover:text-primary transition underline underline-offset-4"
+            >
+              🧪 Atalho de teste: Visualizar Tela Final com Confetes e Campeão
+            </button>
+          </div>
         </div>
       </main>
     );
   }
 
-  // TELA DE TUTORIAL INTERATIVO ("COMO JOGAR")
+  // ==================== TELA 2: TUTORIAL INTERATIVO ====================
   if (fase === "tutorial") {
     const cardAtual = CARDS_TUTORIAL[cardTutorial]!;
     const IconeCard = cardAtual.icone;
@@ -954,7 +919,6 @@ function Jogo() {
           onToggleMute={() => setMutado((m) => !m)}
         />
 
-        {/* Cabeçalho do Tutorial */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
             <Sparkles className="size-3.5" />
@@ -964,133 +928,80 @@ function Jogo() {
             Instruções da Partida
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Conheça as regras essenciais antes de iniciar a jornada das escolhas.
+            Conheça as novas regras de disputa simultânea antes de iniciar.
           </p>
         </div>
 
-        {/* Indicador de Passos / Stepper */}
-        <div className="mt-6 flex items-center justify-center gap-2" aria-label="Progresso do tutorial">
+        {/* Stepper */}
+        <div className="mt-6 flex items-center justify-center gap-2">
           {CARDS_TUTORIAL.map((c, i) => (
             <button
               key={c.numero}
               type="button"
               onClick={() => {
-                if (i !== cardTutorial) {
-                  tocarSomNavegacao();
-                  setCardTutorial(i);
-                }
+                setCardTutorial(i);
+                tocarSomNavegacao();
               }}
-              title={`Ir para card ${c.numero}: ${c.tag}`}
               className={`h-2 rounded-full transition-all duration-300 ${
-                i === cardTutorial
-                  ? "w-8 bg-primary"
-                  : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                i === cardTutorial ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
               }`}
             />
           ))}
         </div>
 
-        {/* Card Principal Interativo */}
-        <div className="panel relative mt-6 overflow-hidden p-6 md:p-8 text-center transition-all duration-300 border-2 border-border/80 shadow-2xl">
-          {/* Top badge */}
+        {/* Card Principal */}
+        <div className="panel relative mt-6 overflow-hidden p-6 md:p-8 text-center border-2 border-border/80 shadow-2xl">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs font-semibold text-muted-foreground">
               CARD {cardAtual.numero} DE {CARDS_TUTORIAL.length}
             </span>
-            <span
-              className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cardAtual.corTag}`}
-            >
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cardAtual.corTag}`}>
               {cardAtual.tag}
             </span>
           </div>
 
-          {/* Ícone Grande */}
-          <div className="mx-auto mt-4 flex size-20 items-center justify-center rounded-2xl shadow-inner md:size-24 bg-secondary">
+          <div className="mx-auto mt-4 flex size-20 items-center justify-center rounded-2xl bg-secondary shadow-inner md:size-24">
             <IconeCard className={`size-10 md:size-12 ${cardAtual.corIcone}`} />
           </div>
 
-          {/* Título do Card */}
-          <h2 className="mt-5 text-2xl font-bold text-foreground md:text-3xl">
-            {cardAtual.titulo}
-          </h2>
-
-          {/* Texto explicativo */}
+          <h2 className="mt-5 text-2xl font-bold text-foreground md:text-3xl">{cardAtual.titulo}</h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
             {cardAtual.texto}
           </p>
 
-          {/* Elementos visuais extras específicos de cada card para enriquecer a experiência */}
-          {cardAtual.numero === 2 && (
-            <div className="mx-auto mt-5 grid max-w-lg grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="flex items-center gap-1.5 rounded-lg border border-success/30 bg-success/10 px-2.5 py-1.5 text-xs font-semibold text-success justify-center">
-                <HeartPulse className="size-3.5" /> Saúde
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning/10 px-2.5 py-1.5 text-xs font-semibold text-warning justify-center">
-                <CircleDollarSign className="size-3.5" /> Dinheiro
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-p3/30 bg-p3/10 px-2.5 py-1.5 text-xs font-semibold text-p3 justify-center">
-                <Users className="size-3.5" /> Família
-              </div>
-              <div className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary justify-center">
-                <Brain className="size-3.5" /> Consciência
-              </div>
-            </div>
-          )}
-
-          {cardAtual.numero === 3 && (
-            <div className="mx-auto mt-5 max-w-md rounded-lg border border-border bg-secondary/50 p-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-                <span>Força do Arremesso</span>
-                <span className="font-semibold text-primary">[ X / ◽ ] Segure e Solte</span>
-              </div>
-              <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full w-3/4 rounded-full"
-                  style={{
-                    background: "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {cardAtual.numero === 4 && (
-            <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs font-bold text-destructive">
-              <LifeBuoy className="size-4 animate-spin" />
-              <span>Pressione [ Y / △ ] quando estiver em estado crítico (&lt; 25%) para recuperar +30 pontos!</span>
-            </div>
-          )}
-
-          {cardAtual.numero === 5 && (
-            <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-bold text-warning">
-              <Trophy className="size-4" />
-              <span>Soma total dos 4 atributos define o vencedor da partida!</span>
-            </div>
-          )}
-
-          {/* Botões de Navegação Anterior / Próximo */}
+          {/* Navegação */}
           <div className="mt-8 flex items-center justify-between gap-3 border-t border-border/80 pt-5">
             <button
               type="button"
-              onClick={tutorialAnterior}
+              onClick={() => {
+                setCardTutorial((c) => Math.max(0, c - 1));
+                tocarSomNavegacao();
+              }}
               disabled={cardTutorial === 0}
               className={`flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm font-semibold transition ${
                 cardTutorial === 0
                   ? "opacity-40 cursor-not-allowed text-muted-foreground"
-                  : "bg-secondary text-secondary-foreground hover:border-primary hover:text-foreground"
+                  : "bg-secondary text-secondary-foreground hover:border-primary"
               }`}
             >
               <ChevronLeft className="size-4" />
               <span>Anterior</span>
             </button>
 
-            <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-              Navegue com [ ◀ ▶ ] ou botões
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Navegue com [ ◀ ▶ ] ou analógico
             </span>
 
             <button
               type="button"
-              onClick={tutorialProximo}
+              onClick={() => {
+                if (cardTutorial === CARDS_TUTORIAL.length - 1) {
+                  comecarPartida();
+                } else {
+                  setCardTutorial((c) => c + 1);
+                  tocarSomNavegacao();
+                }
+              }}
               className="flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
             >
               <span>{cardTutorial === CARDS_TUTORIAL.length - 1 ? "Entendido!" : "Próximo"}</span>
@@ -1099,17 +1010,16 @@ function Jogo() {
           </div>
         </div>
 
-        {/* Rodapé: Botão de Iniciar com Destaque e Opção de Pular */}
+        {/* Rodapé */}
         <div className="mt-6 flex flex-col items-center gap-2.5">
           <button
             type="button"
             onClick={comecarPartida}
-            className="group flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 font-display text-xl text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:opacity-95 active:scale-[0.99]"
+            className="group flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 font-display text-xl text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:opacity-95"
           >
             <Gamepad2 className="size-6 transition group-hover:scale-110" />
             <span>Pressionar [ A / X ] para Iniciar Partida</span>
           </button>
-
           <button
             type="button"
             onClick={comecarPartida}
@@ -1122,251 +1032,24 @@ function Jogo() {
     );
   }
 
-  // TELA FINAL: DESTAQUE DO CAMPEÃO DA PARTIDA
   if (fase === "fim") {
-    const selos = calcularSelos(jogadores);
-
-    // Ranking de todos os jogadores ordenado pela pontuação total
-    const ranking = [...jogadores].sort((a, b) => {
-      const scoreA = calcularPontuacaoTotal(a);
-      const scoreB = calcularPontuacaoTotal(b);
-      if (scoreB !== scoreA) return scoreB - scoreA;
-      // Critérios de desempate
-      if (b.consciencia !== a.consciencia) return b.consciencia - a.consciencia;
-      if (b.saude !== a.saude) return b.saude - a.saude;
-      return b.dinheiro - a.dinheiro;
-    });
-
-    const campeao = ranking[0]!;
-    const demaisJogadores = ranking.slice(1);
-    const pontuacaoCampeao = calcularPontuacaoTotal(campeao);
-    const atributoForteCampeao = obterAtributoMaisForte(campeao);
-    const finalCampeao = calcularFinal(campeao);
-    const corFinalCampeao =
-      finalCampeao.tom === "bom"
-        ? "text-success"
-        : finalCampeao.tom === "medio"
-        ? "text-warning"
-        : "text-destructive";
-
     return (
-      <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-8 md:py-12">
-        <ControleAudio
-          volume={volume}
-          mutado={mutado}
-          onVolumeChange={(v) => {
-            setVolume(v);
-            if (mutado && v > 0) setMutado(false);
-          }}
-          onToggleMute={() => setMutado((m) => !m)}
-        />
-        {/* Cabeçalho */}
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-            Feira de ciências • Encerramento da partida
-          </p>
-          <h1 className="mt-2 text-4xl md:text-5xl text-foreground font-display">
-            Desfechos & Campeão da Partida
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-            A pontuação total reflete a soma de todas as suas decisões em Saúde, Dinheiro, Família e Consciência.
-          </p>
-          <div className="mt-3 text-center">
-            <button
-              type="button"
-              onClick={dispararConfetesVitoria}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/25 active:scale-95 shadow-sm"
-            >
-              <Sparkles className="size-3.5 text-yellow-400" />
-              <span>Soltar confetes novamente 🎊</span>
-            </button>
-          </div>
-        </div>
-
-        {/* CARD CENTRAL DE DESTAQUE: GRANDE CAMPEÃO */}
-        <div className="relative mt-8 overflow-hidden rounded-2xl border-2 border-yellow-400 bg-gradient-to-b from-yellow-500/15 via-card to-card p-6 md:p-8 shadow-[0_0_40px_rgba(250,204,21,0.25)] text-center">
-          {/* Efeito de brilho de fundo */}
-          <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 size-48 rounded-full bg-yellow-400/20 blur-3xl" />
-
-          {/* Badge superior */}
-          <div className="inline-flex items-center justify-center gap-2 rounded-full border border-yellow-400/50 bg-yellow-400/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-yellow-300 shadow-sm">
-            <Sparkles className="size-4 animate-pulse text-yellow-400" />
-            Grande Campeão / Destaque da Partida
-            <Sparkles className="size-4 animate-pulse text-yellow-400" />
-          </div>
-
-          {/* Troféu Dourado em Destaque */}
-          <div className="mx-auto mt-5 mb-3 flex size-20 items-center justify-center rounded-full border-2 border-yellow-400/80 bg-gradient-to-tr from-yellow-500/30 to-yellow-300/30 shadow-[0_0_25px_rgba(250,204,21,0.4)]">
-            <Trophy className="size-11 text-yellow-400 drop-shadow" />
-          </div>
-
-          {/* Nome e Indicador do Campeão */}
-          <h2 className="text-3xl md:text-4xl text-foreground font-display tracking-wide flex items-center justify-center gap-3">
-            <span className={`size-4 rounded-full ${campeao.cor}`} />
-            {campeao.nome}
-          </h2>
-
-          {/* Métricas Principais do Campeão */}
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
-            {/* Pontuação Total */}
-            <div className="rounded-xl border border-yellow-400/40 bg-yellow-400/10 p-3.5 shadow-sm text-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-yellow-400">
-                Pontuação Total Acumulada
-              </p>
-              <p className="font-display text-4xl text-foreground mt-1">
-                {pontuacaoCampeao}
-                <span className="text-sm font-sans text-muted-foreground font-normal ml-1">/ 400 pts</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                (Saúde + Dinheiro + Família + Consciência)
-              </p>
-            </div>
-
-            {/* Atributo Mais Forte */}
-            <div className="rounded-xl border border-primary/40 bg-primary/10 p-3.5 shadow-sm text-center flex flex-col justify-center">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
-                Atributo Mais Forte
-              </p>
-              <div className="mt-1 flex items-center justify-center gap-2">
-                <atributoForteCampeao.Icon className={`size-6 ${atributoForteCampeao.cor}`} />
-                <span className="font-display text-3xl text-foreground">{atributoForteCampeao.nome}</span>
-                <span className="rounded bg-secondary px-2 py-0.5 font-sans text-xs font-bold text-foreground">
-                  {atributoForteCampeao.valor} pts
-                </span>
-              </div>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Maior equilíbrio e proteção demonstrados
-              </p>
-            </div>
-          </div>
-
-          {/* Desfecho Narrativo do Campeão */}
-          <div className="mt-6 border-t border-border/80 pt-5 text-left max-w-xl mx-auto">
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-                Desfecho no Futuro:
-              </span>
-              <span className={`text-xl font-bold ${corFinalCampeao}`}>{finalCampeao.titulo}</span>
-            </div>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{finalCampeao.descricao}</p>
-
-            {(selos.get(campeao.id) ?? []).length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(selos.get(campeao.id) ?? []).map((s) => (
-                  <span
-                    key={s}
-                    className="rounded-full border border-yellow-400/50 bg-yellow-400/10 px-3 py-1 text-xs font-semibold text-yellow-300"
-                  >
-                    {s}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-4">
-              <Barras j={campeao} />
-            </div>
-          </div>
-        </div>
-
-        {/* CLASSIFICAÇÃO GERAL DOS DEMAIS JOGADORES */}
-        {demaisJogadores.length > 0 && (
-          <div className="mt-10">
-            <h3 className="text-2xl text-foreground font-display flex items-center gap-2 mb-4">
-              <Award className="size-6 text-muted-foreground" />
-              Classificação Geral dos Participantes
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {demaisJogadores.map((j, index) => {
-                const posicao = index + 2;
-                const score = calcularPontuacaoTotal(j);
-                const forte = obterAtributoMaisForte(j);
-                const f = calcularFinal(j);
-                const cor =
-                  f.tom === "bom"
-                    ? "text-success"
-                    : f.tom === "medio"
-                    ? "text-warning"
-                    : "text-destructive";
-
-                return (
-                  <div key={j.id} className="panel p-5 flex flex-col justify-between border border-border">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-display text-xl text-muted-foreground">#{posicao}</span>
-                          <span className={`size-3.5 rounded-full ${j.cor}`} />
-                          <span className="font-bold text-foreground text-base">{j.nome}</span>
-                        </div>
-                        <span className="rounded-md border border-border bg-secondary px-2.5 py-1 text-xs font-bold text-foreground">
-                          {score} pts
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>Mais forte:</span>
-                        <forte.Icon className={`size-3.5 ${forte.cor}`} />
-                        <span className="font-semibold text-foreground">{forte.nome} ({forte.valor} pts)</span>
-                      </div>
-
-                      <h4 className={`mt-3 text-lg font-bold ${cor}`}>{f.titulo}</h4>
-                      <p className="mt-1 text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                        {f.descricao}
-                      </p>
-
-                      {(selos.get(j.id) ?? []).length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                          {(selos.get(j.id) ?? []).map((s) => (
-                            <span
-                              key={s}
-                              className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
-                            >
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 pt-3 border-t border-border/60">
-                      <Barras j={j} compacto />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Informações de Apoio e Prevenção Real */}
-        <div className="panel mt-8 p-5 text-sm text-muted-foreground border border-border">
-          <h3 className="text-xl text-foreground font-display flex items-center gap-2">
-            <LifeBuoy className="size-5 text-primary" />
-            Precisa de ajuda de verdade?
-          </h3>
-          <p className="mt-2 leading-relaxed">
-            CAPS-AD e Unidades Básicas de Saúde atendem gratuitamente pelo SUS. <strong>CVV: 188 (24h)</strong>.
-            Dependência de drogas ou apostas não é falta de caráter — é uma doença com tratamento e acolhimento.
-          </p>
-        </div>
-
-        {/* Botão de Reinício rápido com Controle */}
-        <div className="mt-6 text-center">
-          <button
-            onClick={reiniciar}
-            className="w-full rounded-xl bg-primary px-6 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 shadow-lg flex items-center justify-center gap-3 ring-2 ring-primary/40"
-          >
-            <Dices className="size-6" />
-            Jogar de Novo
-            <span className="rounded-md border border-primary-foreground/40 bg-primary-foreground/10 px-2.5 py-0.5 font-sans text-xs tracking-normal font-semibold">
-              Pressione [A] no Controle ou Clique Aqui
-            </span>
-          </button>
-        </div>
-      </main>
+      <TelaFinalCampeao
+        jogadores={jogadores}
+        reiniciar={reiniciar}
+        dispararConfetes={dispararConfetesVitoria}
+        volume={volume}
+        mutado={mutado}
+        onVolumeChange={(v) => {
+          setVolume(v);
+          if (mutado && v > 0) setMutado(false);
+        }}
+        onToggleMute={() => setMutado((m) => !m)}
+      />
     );
   }
 
+  // ==================== TELA 3 & 4: JOGO PRINCIPAL (PERGUNTA SIMULTÂNEA & REVELAÇÃO) ====================
   return (
     <main className="min-h-screen w-full px-4 pb-10 pt-4 md:px-6 md:pb-12 md:pt-5">
       <ControleAudio
@@ -1378,237 +1061,343 @@ function Jogo() {
         }}
         onToggleMute={() => setMutado((m) => !m)}
       />
-      <header className="mx-auto flex max-w-[1500px] items-center justify-between border-b border-border pb-3">
+
+      {/* Cabeçalho do Tabuleiro */}
+      <header className="mx-auto flex max-w-[1500px] flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" aria-hidden="true" />
+          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
+            <ShieldCheck className="size-5" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">Jogo da vida</p>
-            <h1 className="text-2xl leading-none text-foreground">Escolhas Reais</h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+              Jogo da Vida: Escolhas Reais
+            </p>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Multiplayer Simultâneo</h1>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Progresso</p>
-          <p className="font-display text-xl text-foreground">
-            {atual.pos + 1}<span className="text-muted-foreground">/{TABULEIRO.length}</span>
-          </p>
+
+        {/* Indicador de Fases do Tabuleiro */}
+        <div className="flex items-center gap-2">
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
+              faseMapaAtual === 1
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                : "bg-muted/50 text-muted-foreground border-transparent opacity-60"
+            }`}
+          >
+            <span>Fase 1: Fácil</span>
+            <span className="text-[10px] opacity-80">(1-6)</span>
+          </div>
+
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
+              faseMapaAtual === 2
+                ? "bg-orange-500/20 text-orange-400 border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                : "bg-muted/50 text-muted-foreground border-transparent opacity-60"
+            }`}
+          >
+            <span>Fase 2: Médio</span>
+            <span className="text-[10px] opacity-80">(7-14)</span>
+          </div>
+
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition ${
+              faseMapaAtual === 3
+                ? "bg-purple-500/20 text-purple-400 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                : "bg-muted/50 text-muted-foreground border-transparent opacity-60"
+            }`}
+          >
+            <span>Fase 3: Difícil</span>
+            <span className="text-[10px] opacity-80">(15-22)</span>
+          </div>
         </div>
       </header>
 
-      <div className="mx-auto mt-4 grid max-w-[1500px] items-start gap-4 md:min-h-[calc(100vh-112px)] md:grid-cols-[minmax(0,1.45fr)_minmax(310px,0.8fr)]">
-        <div className="flex min-h-0 flex-col gap-3">
-          <Tabuleiro jogadores={jogadores} atual={atual} />
+      {/* Grid Principal: Tabuleiro Refinado + Painel de Pergunta Simultânea */}
+      <div className="mx-auto mt-4 grid max-w-[1500px] items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.9fr)]">
+        {/* LADO ESQUERDO: TABULEIRO MODERNO DE 22 CASAS */}
+        <div className="flex flex-col gap-4">
+          <TabuleiroModerno jogadores={jogadores} />
 
-          <section className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4" aria-label="Status dos jogadores">
-            {jogadores.map((j, i) => (
-              <div
-                key={j.id}
-                className={`player-panel min-w-0 p-3 ${j.id === atual.id ? "player-panel-active" : ""} ${
-                  j.terminou ? "opacity-60" : ""
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`size-3 shrink-0 rounded-full ${j.cor}`} />
-                    <span className={`truncate text-sm font-bold ${CORES_TEXTO[i]}`}>{j.nome}</span>
+          {/* Status dos Jogadores (Barras de Vida e Rede de Apoio) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {jogadores.map((j) => {
+              const precisaApoio = emCritico(j) && !j.usouApoio;
+              return (
+                <div
+                  key={j.id}
+                  className={`rounded-xl border p-3.5 transition-all bg-card/70 backdrop-blur-sm ${j.cor.border} ${j.cor.glow}`}
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <span className={`size-7 rounded-full flex items-center justify-center text-sm ${j.cor.bgLight} border ${j.cor.border}`}>
+                        {GENEROS_CONFIG[j.genero].avatar}
+                      </span>
+                      <div>
+                        <p className="font-bold text-xs text-foreground leading-tight">{j.nome}</p>
+                        <p className={`text-[10px] font-semibold ${j.cor.text}`}>{GENEROS_CONFIG[j.genero].label}</p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-secondary text-foreground">
+                      Casa {j.pos + 1}/22
+                    </span>
                   </div>
-                  <span className="shrink-0 font-display text-base text-muted-foreground">#{j.pos + 1}</span>
+
+                  {/* Barras de Atributos */}
+                  <div className="mt-2.5 space-y-1.5">
+                    <BarraAtributo nome="Saúde" valor={j.saude} cor="bg-emerald-500" Icon={HeartPulse} />
+                    <BarraAtributo nome="Dinheiro" valor={j.dinheiro} cor="bg-yellow-500" Icon={CircleDollarSign} />
+                    <BarraAtributo nome="Família" valor={j.familia} cor="bg-blue-500" Icon={Users} />
+                    <BarraAtributo nome="Consciência" valor={j.consciencia} cor="bg-purple-500" Icon={Brain} />
+                  </div>
+
+                  {/* Alerta de Apoio */}
+                  {precisaApoio && (
+                    <button
+                      type="button"
+                      onClick={() => acionarRedeApoio(j.id)}
+                      className="mt-2.5 w-full rounded-md border border-destructive/50 bg-destructive/15 px-2 py-1.5 text-[11px] font-bold text-destructive hover:bg-destructive/25 transition flex items-center justify-center gap-1.5 animate-pulse"
+                    >
+                      <LifeBuoy className="size-3.5" />
+                      <span>🆘 Acionar Rede de Apoio (+30)</span>
+                    </button>
+                  )}
                 </div>
-                <Barras
-                  j={j}
-                  compacto
-                  delta={flutuante && flutuante.id === j.id ? flutuante.efeito : undefined}
-                  deltaKey={flutuante?.key}
-                />
-              </div>
-            ))}
-          </section>
+              );
+            })}
+          </div>
         </div>
 
-        <section className="question-panel flex min-h-[420px] flex-col p-5 md:min-h-0 md:p-6">
-          {/* Indicação visual da rodada */}
-          <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 shadow-sm">
-            <Gamepad2 className="size-5 animate-pulse text-primary shrink-0" />
-            <p className="text-sm font-bold tracking-wide text-foreground">
-              Aguardando <span className={CORES_TEXTO[atual.id]}>{atual.nome}</span> fazer sua jogada
-            </p>
-          </div>
-
-          <div className="mb-5 flex items-center justify-between border-b border-border pb-4">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Rodada atual</p>
-              <h2 className={`mt-1 text-2xl ${CORES_TEXTO[atual.id]}`}>{atual.nome}</h2>
-            </div>
-            <div className={`flex size-12 items-center justify-center rounded-md border border-border bg-secondary ${fase === "rolando" ? "dice-rolling" : ""}`}>
-              {dado ? <DiceFace valor={dado} compacto /> : <Dices className="size-6 text-primary" />}
-            </div>
-          </div>
-
-          {fase === "rolar" && (
-            <div className="flex flex-1 flex-col justify-center text-center">
-              <Dices className="mx-auto size-14 text-primary" aria-hidden="true" />
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sua vez de avançar</p>
-              <h2 className="mt-2 text-4xl text-foreground">Role o dado</h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">Cada casa do caminho traz uma nova decisão sobre drogas ou apostas.</p>
-              <button
-                onClick={abrirArremesso}
-                className={`mt-7 w-full rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90 ${
-                  controleAtivoConectado ? "ring-2 ring-accent ring-offset-2 ring-offset-card" : ""
-                }`}
-              >
-                Rolar o dado
-              </button>
-              <button
-                onClick={buscarAjuda}
-                disabled={!ajudaDisponivel}
-                className={`mt-3 flex w-full items-center justify-center gap-2 rounded-md border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:opacity-60 ${
-                  ajudaDisponivel
-                    ? "border-accent bg-accent/15 text-accent ring-2 ring-accent/60 hover:bg-accent/25"
-                    : "border-accent/60 bg-accent/10 text-accent"
-                }`}
-              >
-                <LifeBuoy className="size-4" aria-hidden="true" />
-                Buscar ajuda {atual.usouApoio ? "(já usado)" : "(1 uso)"}
-                <span className="rounded border border-current px-1.5 py-0.5 font-display text-xs tracking-widest">
-                  Y / △
+        {/* LADO DIREITO: ÁREA DE PERGUNTA SIMULTÂNEA / REVELAÇÃO */}
+        <div className="panel flex flex-col min-h-[520px] p-5 md:p-6 border-2 border-primary/20 shadow-xl">
+          {fase === "pergunta_simultanea" && perguntaAtual && (
+            <div className="flex flex-col flex-1">
+              {/* Badge de Tema e Dificuldade */}
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold uppercase text-primary">
+                  <Sparkles className="size-3.5" />
+                  <span>Fase {perguntaAtual.fase} • {perguntaAtual.dificuldade}</span>
                 </span>
-              </button>
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                Disponível quando algum atributo estiver abaixo de 25%. Gasta o turno e recupera +30 no
-                atributo mais baixo.
-              </p>
-            </div>
-          )}
-
-          {fase === "rolando" && dado && (
-            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
-              <div className="dice-stage" aria-label={`Dado mostrando ${dado}`}>
-                <DiceFace valor={dado} />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Tema: {perguntaAtual.tema}
+                </span>
               </div>
-              <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Dado em movimento</p>
-              <h2 className="mt-2 text-4xl text-foreground">Rolando...</h2>
-              <p className="mt-2 text-sm text-muted-foreground">A sorte está lançada, {atual.nome}.</p>
-            </div>
-          )}
 
-          {fase === "movendo" && dado && (
-            <div className="flex flex-1 flex-col items-center justify-center py-8 text-center" aria-live="polite">
-              <DiceFace valor={dado} />
-              <p className="mt-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary">Resultado: {dado}</p>
-              <h2 className="mt-2 text-4xl text-foreground">Avançando...</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{atual.nome} está percorrendo o caminho.</p>
-            </div>
-          )}
+              {/* Enunciado */}
+              <h2 className="mt-4 text-lg md:text-xl font-bold leading-snug text-foreground">
+                {perguntaAtual.enunciado}
+              </h2>
 
-          {fase === "pergunta" && pergunta && (
-            <div className="flex flex-1 flex-col">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                {pergunta.tema === "drogas" ? <HeartPulse className="size-4" /> : <CircleDollarSign className="size-4" />}
-                <span>{pergunta.tema === "drogas" ? "Drogas" : "Apostas"}</span>
+              {/* Status Simultâneo dos Jogadores (Prontos ou Pensando) */}
+              <div className="mt-4 rounded-xl border border-border/80 bg-secondary/50 p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 text-center">
+                  Status das Respostas em Tempo Real:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {jogadores.map((j) => {
+                    const respondeu = respostasRodada[j.id] !== undefined;
+                    return (
+                      <div
+                        key={j.id}
+                        className={`flex flex-col items-center justify-center rounded-lg p-2 border transition-all ${
+                          respondeu
+                            ? "bg-emerald-500/15 border-emerald-500 text-emerald-400 shadow-sm"
+                            : `${j.cor.border} ${j.cor.bgLight} text-muted-foreground`
+                        }`}
+                      >
+                        <span className="text-base">{GENEROS_CONFIG[j.genero].avatar}</span>
+                        <span className="text-[11px] font-bold truncate max-w-[80px]">{j.nome}</span>
+                        <span
+                          className={`mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            respondeu ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground animate-pulse"
+                          }`}
+                        >
+                          {respondeu ? "PRONTO ✓" : "PENSANDO..."}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <h2 className="mt-4 font-sans text-xl font-semibold leading-snug text-foreground xl:text-2xl">{pergunta.enunciado}</h2>
-              <div className="mt-6 grid gap-3 pb-4">
-                {pergunta.opcoes.map((op, index) => (
+
+              {/* 4 Alternativas de Resposta */}
+              <div className="mt-5 space-y-2.5 flex-1">
+                {perguntaAtual.opcoes.map((op, idx) => {
+                  const botoesGuia = ["[ A / ✕ ]", "[ B / ◯ ]", "[ X / ▢ ]", "[ Y / △ ]"];
+                  return (
+                    <div
+                      key={op.letra}
+                      className="group flex items-center justify-between rounded-xl border border-border bg-secondary/80 p-3 text-sm text-foreground transition-all hover:border-primary/50"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/30 font-display font-bold text-primary">
+                          {op.letra}
+                        </span>
+                        <p className="leading-snug text-xs md:text-sm pt-0.5">{op.texto}</p>
+                      </div>
+                      <span className="ml-3 shrink-0 rounded bg-muted/80 px-2 py-1 font-mono text-[10px] font-bold text-muted-foreground group-hover:text-primary">
+                        {botoesGuia[idx]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Controles de Clique / Revelação */}
+              <div className="mt-6 border-t border-border pt-4">
+                {todosResponderam ? (
                   <button
-                    key={op.texto}
-                    onClick={() => responder(op)}
-                    onMouseEnter={() => {
-                      if (foco !== index) {
-                        tocarSomNavegacao();
-                        setFoco(index);
-                      }
-                    }}
-                    className={`answer-option group flex min-h-16 w-full items-center gap-4 rounded-md border bg-secondary px-4 py-3 text-left text-sm text-secondary-foreground transition hover:border-primary hover:bg-muted ${
-                      foco === index
-                        ? "scale-[1.02] border-accent bg-muted ring-2 ring-accent"
-                        : "border-border"
-                    }`}
+                    type="button"
+                    onClick={revelarRespostas}
+                    className="w-full rounded-xl bg-emerald-600 px-4 py-3.5 font-display text-lg tracking-wider text-white shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.02] hover:bg-emerald-500 animate-bounce"
                   >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border font-display text-lg text-primary transition group-hover:border-primary">
-                      {String.fromCharCode(65 + index)}
-                    </span>
-                    <span className="leading-snug">{op.texto}</span>
+                    ✨ Todos Prontos! [ A / Revelar Respostas ]
                   </button>
-                ))}
+                ) : (
+                  <div className="space-y-2 text-center">
+                    <p className="text-xs text-muted-foreground">
+                      Pressione a alternativa correspondente no seu controle ou clique no seu nome abaixo:
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {jogadores.map((j) => (
+                        <div key={j.id} className="flex items-center gap-1 bg-secondary rounded-lg px-2 py-1 border border-border">
+                          <span className="text-xs font-bold">{j.nome}:</span>
+                          {(["A", "B", "C", "D"] as const).map((letra, opIdx) => {
+                            const selecionada = respostasRodada[j.id] === opIdx;
+                            return (
+                              <button
+                                key={letra}
+                                type="button"
+                                onClick={() => responderSimultaneo(j.id, opIdx as 0 | 1 | 2 | 3)}
+                                className={`size-6 rounded text-[10px] font-bold transition ${
+                                  selecionada
+                                    ? "bg-emerald-500 text-white shadow"
+                                    : "bg-muted text-muted-foreground hover:bg-primary hover:text-white"
+                                }`}
+                              >
+                                {letra}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {fase === "resultado" && resultado && (
-            <div className="flex flex-1 flex-col">
-              <div className="flex size-12 items-center justify-center rounded-md bg-accent/15 text-accent">
-                <Brain className="size-6" aria-hidden="true" />
+          {/* FASE DE REVELAÇÃO GERAL */}
+          {fase === "revelacao" && perguntaAtual && (
+            <div className="flex flex-col flex-1">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+                <Brain className="size-4" />
+                <span>Revelação Geral das Respostas</span>
               </div>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{resultado.titulo}</p>
-              <h2 className="mt-2 text-3xl text-foreground">Toda escolha deixa uma marca</h2>
-              <p className="mt-4 text-base leading-relaxed text-muted-foreground">{resultado.texto}</p>
-              <Efeitos efeito={resultado.efeito} />
-              <button
-                onClick={continuar}
-                className="mt-auto w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
-              >
-                Passar a vez
-              </button>
+
+              <h2 className="mt-3 text-base md:text-lg font-bold text-foreground">
+                {perguntaAtual.enunciado}
+              </h2>
+
+              {/* Explicação da Escolha Consciente */}
+              {(() => {
+                const opcaoCorreta = perguntaAtual.opcoes.find((o) => o.correta);
+                return (
+                  opcaoCorreta && (
+                    <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3.5">
+                      <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                        ✨ Escolha Consciente ({opcaoCorreta.letra}):
+                      </p>
+                      <p className="mt-1 text-xs text-foreground font-medium">{opcaoCorreta.texto}</p>
+                      <p className="mt-1.5 text-[11px] text-muted-foreground leading-relaxed">
+                        {opcaoCorreta.feedback}
+                      </p>
+                    </div>
+                  )
+                );
+              })()}
+
+              {/* Desempenho de Cada Jogador */}
+              <div className="mt-4 space-y-2.5 flex-1">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Decisão de Cada Participante:
+                </p>
+                {jogadores.map((j) => {
+                  const idxEscolhida = respostasRodada[j.id];
+                  const opcao = idxEscolhida !== undefined ? perguntaAtual.opcoes[idxEscolhida] : null;
+                  const acertou = opcao?.correta;
+
+                  return (
+                    <div
+                      key={j.id}
+                      className={`flex items-center justify-between rounded-xl border p-3 ${
+                        acertou
+                          ? "border-emerald-500/50 bg-emerald-500/10"
+                          : "border-destructive/40 bg-destructive/10"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`size-8 rounded-full flex items-center justify-center text-sm ${j.cor.bgLight} border ${j.cor.border}`}>
+                          {GENEROS_CONFIG[j.genero].avatar}
+                        </span>
+                        <div>
+                          <p className="text-xs font-bold text-foreground">{j.nome}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Escolheu: <span className="font-bold">{opcao ? `[${opcao.letra}]` : "Nenhuma"}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span
+                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                            acertou ? "bg-emerald-500 text-white" : "bg-destructive text-white"
+                          }`}
+                        >
+                          {acertou ? "Avança +2 Casas ✨" : "+0 Casas ⚠️"}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+                          Posição: Casa {j.pos + 1}/22
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Botão de Próxima Rodada */}
+              <div className="mt-5 border-t border-border pt-4">
+                <button
+                  type="button"
+                  onClick={proximaRodada}
+                  className="w-full rounded-xl bg-primary px-4 py-3.5 font-display text-lg tracking-wider text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] hover:opacity-95"
+                >
+                  {jogadores.some((j) => j.pos >= TABULEIRO.length - 1)
+                    ? "🏆 Ver Grande Campeão [ A / Continuar ]"
+                    : "Próxima Pergunta [ A / Continuar ]"}
+                </button>
+              </div>
             </div>
           )}
-        </section>
+        </div>
       </div>
 
-      {fase === "arremesso" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/85 p-4">
-          <div className="panel w-full max-w-md p-6 text-center">
-            <Dices className="mx-auto size-12 text-primary" aria-hidden="true" />
-            <h2 className="mt-4 text-3xl text-foreground">Lançar o dado</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Segure <span className="font-semibold text-primary">[ X / ◽ ]</span> (ou a barra de
-              espaço / botão abaixo) para carregar a força e solte para rolar!
-            </p>
-
-            <div className="mt-6 h-6 w-full overflow-hidden rounded-full border border-border bg-secondary">
-              <div
-                ref={forcaBarra}
-                className="h-full rounded-full will-change-[width]"
-                style={{
-                  width: "0%",
-                  background:
-                    "linear-gradient(90deg, var(--success), var(--warning) 60%, var(--destructive))",
-                }}
-              />
-            </div>
-            <p ref={forcaPercento} className="mt-2 font-display text-2xl text-primary">0%</p>
-
-            <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                setSegurando(true);
-              }}
-              onPointerUp={() => soltarForca()}
-              onPointerLeave={() => soltarForca()}
-              className="mt-5 w-full select-none rounded-md bg-primary px-4 py-4 font-display text-2xl text-primary-foreground transition hover:opacity-90"
-            >
-              {segurando ? "Solte para lançar!" : "Segure para carregar"}
-            </button>
-          </div>
-        </div>
-      )}
-
+      {/* Modal de Alerta da Rede de Apoio */}
       {modalApoio && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4">
-          <div className="panel w-full max-w-md p-6 text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/15 text-accent">
-              <LifeBuoy className="size-6" aria-hidden="true" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="panel max-w-md w-full p-6 text-center border-2 border-emerald-500 shadow-2xl">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+              <LifeBuoy className="size-8" />
             </div>
-            <h2 className="mt-4 text-3xl text-foreground">Rede de apoio</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{modalApoio}</p>
-            <p className="mt-3 text-sm font-semibold text-accent">
-              +30 no seu atributo mais baixo. CVV 188 e CAPS-AD atendem de graça, 24h.
-            </p>
+            <h3 className="mt-3 text-xl font-bold text-foreground">Rede de Apoio Acionada!</h3>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{modalApoio}</p>
             <button
-              onClick={fecharApoio}
-              className="mt-6 w-full rounded-md bg-primary px-4 py-3 font-display text-xl text-primary-foreground transition hover:opacity-90"
+              type="button"
+              onClick={() => setModalApoio(null)}
+              className="mt-5 w-full rounded-lg bg-primary py-2.5 font-bold text-sm text-primary-foreground transition hover:opacity-90"
             >
-              Continuar
+              Compreendido! Continuar Jogo
             </button>
           </div>
         </div>
@@ -1617,204 +1406,258 @@ function Jogo() {
   );
 }
 
-function calcularSelos(jogadores: Jogador[]): Map<number, string[]> {
-  const selos = new Map<number, string[]>();
-  const add = (id: number, s: string) => selos.set(id, [...(selos.get(id) ?? []), s]);
-  if (!jogadores.length) return selos;
-
-  const menorRisco = jogadores.reduce((a, b) => (a.perdaRisco <= b.perdaRisco ? a : b));
-  add(menorRisco.id, "🛡️ Mente Blindada");
-
-  const maisFamilia = jogadores.reduce((a, b) => (a.familia >= b.familia ? a : b));
-  add(maisFamilia.id, "❤️ Pilar Familiar");
-
-  const maisConsciencia = jogadores.reduce((a, b) => (a.consciencia >= b.consciencia ? a : b));
-  add(maisConsciencia.id, "🧠 Consciência Elevada");
-
-  jogadores
-    .filter((j) => j.esteveCritico && j.usouApoio && j.terminou)
-    .forEach((j) => add(j.id, "🔥 Superação"));
-
-  return selos;
-}
-
-function Tabuleiro({ jogadores, atual }: { jogadores: Jogador[]; atual: Jogador }) {
-  const porCasa = useMemo(() => {
-    const m = new Map<number, Jogador[]>();
-    jogadores.forEach((j) => m.set(j.pos, [...(m.get(j.pos) ?? []), j]));
-    return m;
-  }, [jogadores]);
-
-  const casasVisuais = useMemo(() => {
-    const linhas: { casa: (typeof TABULEIRO)[number]; indice: number }[][] = [];
-    for (let inicio = 0; inicio < TABULEIRO.length; inicio += 5) {
-      const linha = TABULEIRO.slice(inicio, inicio + 5).map((casa, offset) => ({ casa, indice: inicio + offset }));
-      linhas.push(linhas.length % 2 === 1 ? linha.reverse() : linha);
-    }
-    return linhas.flat();
-  }, []);
-
+// ==================== COMPONENTE: TABULEIRO MODERNO (22 CASAS) ====================
+function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
   return (
-    <section className="board-panel flex min-h-[460px] flex-1 flex-col p-3 md:min-h-[480px] md:p-4 xl:min-h-[520px]" aria-label="Mapa do jogo">
-      <div className="mb-3 flex items-end justify-between px-1">
+    <section aria-label="Tabuleiro da Vida" className="panel p-4 md:p-5 border-2 border-border/80 shadow-lg">
+      <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">O caminho das escolhas</p>
-          <h2 className="mt-1 text-2xl text-foreground">Mapa da vida</h2>
+          <h2 className="text-base md:text-lg font-bold text-foreground">Trilha das Escolhas Reais</h2>
+          <p className="text-xs text-muted-foreground">Avance pelas 22 casas através de decisões conscientes</p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Users className="size-4" /> {jogadores.length} jogadores
+        <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+          <span>Partida: Casa 1</span>
+          <span>➔</span>
+          <span className="text-primary font-bold">Futuro: Casa 22</span>
         </div>
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-5 grid-rows-4 gap-3">
-      {casasVisuais.map(({ casa, indice: i }) => {
-        const aqui = porCasa.get(i) ?? [];
-        const tom = casa.tipo === "final" ? "border-accent/60 bg-accent/10" : casa.tipo === "inicio" ? "border-border bg-muted" : "border-border bg-secondary";
-        const linha = Math.floor(i / 5);
-        const fimDaLinha = i % 5 === 4;
-        const direcao = linha % 2 === 0 ? "direita" : "esquerda";
-        return (
-          <div
-            key={i}
-            className={`board-space relative flex min-h-0 flex-col justify-between rounded-md border p-2 ${tom} ${
-              atual.pos === i ? "board-space-active" : ""
-            }`}
-          >
-            {i < TABULEIRO.length - 1 && (
-              <span
-                aria-hidden="true"
-                className={`board-connector ${
-                  fimDaLinha ? (direcao === "direita" ? "board-connector-down-right" : "board-connector-down-left") : direcao === "direita" ? "board-connector-right" : "board-connector-left"
-                }`}
-              />
-            )}
-            <div className="flex items-start justify-between gap-1">
-              <span className="text-[10px] font-semibold uppercase leading-tight text-muted-foreground">{casa.rotulo}</span>
-              <span className="font-display text-base leading-none text-border">{String(i + 1).padStart(2, "0")}</span>
+
+      {/* Grid de 22 Casas em Trilha Serpentine / Modular */}
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-11 gap-2">
+        {TABULEIRO.map((casa, idx) => {
+          const jogadoresAqui = jogadores.filter((j) => j.pos === idx);
+          const corBordaFase =
+            casa.fase === 1
+              ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500"
+              : casa.fase === 2
+              ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500"
+              : "border-purple-500/40 bg-purple-500/5 hover:border-purple-500";
+
+          return (
+            <div
+              key={casa.numero}
+              className={`relative flex min-h-[92px] flex-col justify-between rounded-xl border-2 p-2 transition-all ${corBordaFase} ${
+                jogadoresAqui.length ? "ring-2 ring-primary shadow-md" : ""
+              }`}
+            >
+              {/* Top: Número e Ícone */}
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] font-bold text-muted-foreground">
+                  #{casa.numero}
+                </span>
+                <span className="text-muted-foreground/80">
+                  {renderIconeCasa(casa.icone, "size-3.5")}
+                </span>
+              </div>
+
+              {/* Rótulo da Casa */}
+              <div className="my-1">
+                <p className="font-bold text-[11px] leading-tight text-foreground truncate" title={casa.rotulo}>
+                  {casa.rotulo}
+                </p>
+                <p className="text-[9px] text-muted-foreground truncate">{casa.subtitulo}</p>
+              </div>
+
+              {/* Pinos dos Jogadores Presentes na Casa */}
+              <div className="flex flex-wrap items-center gap-1 min-h-[22px]">
+                {jogadoresAqui.map((j) => (
+                  <span
+                    key={j.id}
+                    title={`${j.nome} (${GENEROS_CONFIG[j.genero].label})`}
+                    className={`flex size-5 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-md transition-transform hover:scale-125 ${j.cor.bgSolid} border border-white`}
+                  >
+                    {GENEROS_CONFIG[j.genero].avatar}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1">
-              {aqui.map((j) => (
-                <span key={`${j.id}-${j.pos}`} className={`player-token player-token-hop size-4 rounded-full border-2 border-background ${j.cor}`} title={j.nome} />
-              ))}
-              {casa.tipo === "inicio" && !aqui.length ? <Home className="size-4 text-muted-foreground" /> : null}
-              {casa.tipo === "final" ? <ShieldCheck className="ml-auto size-4 text-accent" /> : null}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function DiceFace({ valor, compacto = false }: { valor: number; compacto?: boolean }) {
-  const pontos: Record<number, number[]> = {
-    1: [4],
-    2: [0, 8],
-    3: [0, 4, 8],
-    4: [0, 2, 6, 8],
-    5: [0, 2, 4, 6, 8],
-    6: [0, 2, 3, 5, 6, 8],
-  };
-  const ativos = pontos[valor] ?? pontos[1];
-  return (
-    <div className={`grid grid-cols-3 grid-rows-3 ${compacto ? "size-7 gap-0.5" : "size-24 gap-2 rounded-xl border-2 border-primary bg-secondary p-4 shadow-lg"}`}>
-      {Array.from({ length: 9 }, (_, i) => (
-        <span
-          key={i}
-          className={`${compacto ? "size-1.5" : "size-3"} place-self-center rounded-full ${ativos?.includes(i) ? "bg-primary" : "bg-transparent"}`}
-        />
-      ))}
-    </div>
-  );
-}
-
-function Barras({
-  j,
-  compacto,
-  delta,
-  deltaKey,
+// Barra de atributo individual com indicador crítico
+function BarraAtributo({
+  nome,
+  valor,
+  cor,
+  Icon,
 }: {
-  j: Jogador;
-  compacto?: boolean;
-  delta?: Efeito | undefined;
-  deltaKey?: number | undefined;
+  nome: string;
+  valor: number;
+  cor: string;
+  Icon: typeof HeartPulse;
 }) {
-  const itens: [string, keyof Efeito, number, string, typeof HeartPulse][] = [
-    ["Saúde", "saude", j.saude, "bg-success", HeartPulse],
-    ["Dinheiro", "dinheiro", j.dinheiro, "bg-warning", CircleDollarSign],
-    ["Família", "familia", j.familia, "bg-p3", Users],
-    ["Consciência", "consciencia", j.consciencia, "bg-primary", Brain],
-  ];
+  const critico = valor < ALERTA;
   return (
-    <div className={compacto ? "mt-2 space-y-1" : "mt-4 space-y-1.5"}>
-      {itens.map(([nome, chave, valor, cor, Icon]) => {
-        const critico = valor < ALERTA;
-        const d = delta?.[chave] ?? 0;
-        return (
-          <div key={nome} className="relative flex items-center gap-2">
-            <Icon
-              className={`size-3 shrink-0 ${critico ? "text-destructive" : "text-muted-foreground"}`}
-              aria-label={nome}
-            />
+    <div className="flex items-center gap-1.5 text-xs">
+      <Icon className={`size-3 shrink-0 ${critico ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${critico ? "bg-destructive animate-pulse" : cor}`}
+          style={{ width: `${valor}%` }}
+        />
+      </div>
+      <span className={`w-6 text-right font-mono text-[10px] ${critico ? "font-bold text-destructive" : "text-muted-foreground"}`}>
+        {valor}
+      </span>
+    </div>
+  );
+}
+
+// ==================== TELA 5: ENCERRAMENTO & GRANDE CAMPEÃO ====================
+function TelaFinalCampeao({
+  jogadores,
+  reiniciar,
+  dispararConfetes,
+  volume,
+  mutado,
+  onVolumeChange,
+  onToggleMute,
+}: {
+  jogadores: Jogador[];
+  reiniciar: () => void;
+  dispararConfetes: () => void;
+  volume: number;
+  mutado: boolean;
+  onVolumeChange: (v: number) => void;
+  onToggleMute: () => void;
+}) {
+  const ranking = [...jogadores].sort((a, b) => {
+    const scoreA = calcularPontuacaoTotal(a);
+    const scoreB = calcularPontuacaoTotal(b);
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    if (b.consciencia !== a.consciencia) return b.consciencia - a.consciencia;
+    return b.saude - a.saude;
+  });
+
+  const campeao = ranking[0] || jogadores[0]!;
+  const pontuacaoCampeao = calcularPontuacaoTotal(campeao);
+  const atributoForteCampeao = obterAtributoMaisForte(campeao);
+  const finalCampeao = calcularFinal(campeao);
+
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-4xl px-4 py-8 md:py-12">
+      <ControleAudio
+        volume={volume}
+        mutado={mutado}
+        onVolumeChange={onVolumeChange}
+        onToggleMute={onToggleMute}
+      />
+
+      <div className="text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+          Feira de Ciências • Grande Encerramento
+        </p>
+        <h1 className="mt-2 text-4xl md:text-5xl font-display text-foreground">
+          O Futuro das Escolhas Reais
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+          A vida é moldada pelas decisões diárias. Veja quem construiu a trajetória mais equilibrada e consciente!
+        </p>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={dispararConfetes}
+            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/15 px-4 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/25 active:scale-95 shadow-sm"
+          >
+            <Sparkles className="size-3.5 text-yellow-400" />
+            <span>Soltar confetes novamente 🎊</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Card Dourado do Campeão */}
+      <div className={`relative mt-8 overflow-hidden rounded-2xl border-2 p-6 md:p-8 text-center shadow-2xl bg-card/80 backdrop-blur-md ${campeao.cor.border} ${campeao.cor.glow}`}>
+        <div className="inline-flex items-center justify-center gap-2 rounded-full border border-yellow-400/50 bg-yellow-400/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-yellow-300 shadow-sm">
+          <Sparkles className="size-4 animate-pulse text-yellow-400" />
+          Grande Campeão da Partida
+          <Sparkles className="size-4 animate-pulse text-yellow-400" />
+        </div>
+
+        <div className="mx-auto mt-5 mb-3 flex size-20 items-center justify-center rounded-full border-2 border-yellow-400/80 bg-gradient-to-tr from-yellow-500/30 to-yellow-300/30 shadow-[0_0_25px_rgba(250,204,21,0.4)]">
+          <Trophy className="size-11 text-yellow-400 drop-shadow" />
+        </div>
+
+        <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          {GENEROS_CONFIG[campeao.genero].avatar} {GENEROS_CONFIG[campeao.genero].label}
+        </p>
+        <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mt-1">
+          {campeao.nome}
+        </h2>
+
+        <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2 border border-border">
+          <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Pontuação Total:</span>
+          <span className="font-mono text-2xl font-bold text-primary">{pontuacaoCampeao}</span>
+          <span className="text-xs text-muted-foreground">/ 400 pts</span>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-4 text-xs font-semibold">
+          <span className="text-emerald-400">✨ {campeao.acertos} Escolhas Conscientes</span>
+          <span className="text-muted-foreground">•</span>
+          <span>Atributo Destaque: <strong className={atributoForteCampeao.cor}>{atributoForteCampeao.nome} ({atributoForteCampeao.valor})</strong></span>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-border bg-secondary/50 p-4 max-w-xl mx-auto text-left">
+          <p className="text-xs font-bold uppercase tracking-wider text-primary">{finalCampeao.titulo}</p>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{finalCampeao.descricao}</p>
+        </div>
+      </div>
+
+      {/* Ranking Completo dos Demais Participantes */}
+      <div className="mt-8 panel p-6">
+        <h3 className="text-lg font-bold text-foreground mb-4">Classificação Geral da Partida</h3>
+        <div className="space-y-3">
+          {ranking.map((j, index) => (
             <div
-              className={`h-1.5 w-full overflow-hidden rounded-full bg-muted ${critico ? "bar-critical" : ""}`}
+              key={j.id}
+              className={`flex items-center justify-between rounded-xl border p-3.5 ${
+                index === 0 ? "border-yellow-400/50 bg-yellow-400/10" : "border-border bg-secondary/60"
+              }`}
             >
-              <div
-                className={`h-full rounded-full transition-[width] duration-500 ${critico ? "bg-destructive" : cor}`}
-                style={{ width: `${valor}%` }}
-              />
+              <div className="flex items-center gap-3">
+                <span className="font-display text-lg font-bold text-muted-foreground w-6 text-center">
+                  #{index + 1}
+                </span>
+                <span className={`size-8 rounded-full flex items-center justify-center text-sm ${j.cor.bgLight} border ${j.cor.border}`}>
+                  {GENEROS_CONFIG[j.genero].avatar}
+                </span>
+                <div>
+                  <p className="font-bold text-sm text-foreground">{j.nome}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Casa {j.pos + 1}/22 • {j.acertos} acertos
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="font-mono text-lg font-bold text-foreground">
+                  {calcularPontuacaoTotal(j)}
+                </span>
+                <span className="text-xs text-muted-foreground ml-1">pts</span>
+              </div>
             </div>
-            <span
-              className={`w-5 text-right text-[9px] ${critico ? "font-bold text-destructive" : "text-muted-foreground"}`}
-            >
-              {valor}
-            </span>
-            {d !== 0 && (
-              <span
-                key={`${deltaKey}-${chave}`}
-                className={`float-delta absolute right-0 -top-2 text-[11px] font-bold ${
-                  d > 0 ? "text-success" : "text-destructive"
-                }`}
-              >
-                {d > 0 ? "+" : ""}
-                {d}
-              </span>
-            )}
-          </div>
-        );
-      })}
-    </div>
+          ))}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={reiniciar}
+            className="flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 font-display text-lg text-primary-foreground shadow-lg shadow-primary/25 transition hover:scale-105 active:scale-95"
+          >
+            <RefreshCw className="size-5" />
+            <span>Jogar Novamente</span>
+          </button>
+        </div>
+      </div>
+    </main>
   );
 }
 
-function Efeitos({ efeito }: { efeito: Efeito }) {
-  const mapa: Record<string, string> = {
-    saude: "Saúde",
-    dinheiro: "Dinheiro",
-    familia: "Família",
-    consciencia: "Consciência",
-  };
-  const entradas = Object.entries(efeito).filter(([, v]) => v);
-  if (!entradas.length) return null;
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {entradas.map(([k, v]) => (
-        <span
-          key={k}
-          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            (v as number) > 0
-              ? "bg-success/15 text-success"
-              : "bg-destructive/15 text-destructive"
-          }`}
-        >
-          {mapa[k]} {(v as number) > 0 ? "+" : ""}
-          {v}
-        </span>
-      ))}
-    </div>
-  );
-}
-
+// ==================== CONTROLE DISCRETO DE ÁUDIO ====================
 function ControleAudio({
   volume,
   mutado,

@@ -6,390 +6,516 @@ export type Efeito = {
 };
 
 export type Opcao = {
+  letra: "A" | "B" | "C" | "D";
   texto: string;
   efeito: Efeito;
   feedback: string;
+  correta: boolean; // true para escolha consciente / protetiva
 };
+
+export type Dificuldade = "fácil" | "médio" | "difícil";
 
 export type Pergunta = {
   id: number;
-  tema: "drogas" | "apostas";
+  fase: 1 | 2 | 3;
+  dificuldade: Dificuldade;
+  tema: "drogas" | "apostas" | "hábitos";
   enunciado: string;
   opcoes: Opcao[];
 };
 
-export type TipoCasa = "inicio" | "pergunta" | "evento" | "descanso" | "final";
+export type TipoCasa = "inicio" | "pergunta" | "apoio" | "final";
 
 export type Casa = {
+  numero: number;
+  fase: 1 | 2 | 3;
   tipo: TipoCasa;
   rotulo: string;
+  subtitulo: string;
+  icone: string;
 };
 
+// 22 CASAS ESTRUTURADAS EM 3 FASES DE DIFICULDADE
+export const TABULEIRO: Casa[] = [
+  // FASE 1: Início - Casas 1 a 6 (Fácil: Hábitos, Família e Escolhas do Dia a Dia)
+  { numero: 1, fase: 1, tipo: "inicio", rotulo: "Ponto de Partida", subtitulo: "Início da Jornada", icone: "Compass" },
+  { numero: 2, fase: 1, tipo: "pergunta", rotulo: "Casa da Família", subtitulo: "Diálogo & Vínculos", icone: "Home" },
+  { numero: 3, fase: 1, tipo: "pergunta", rotulo: "Escola & Estudos", subtitulo: "Conhecimento & Futuro", icone: "GraduationCap" },
+  { numero: 4, fase: 1, tipo: "pergunta", rotulo: "Praça de Esportes", subtitulo: "Lazer Saudável", icone: "Activity" },
+  { numero: 5, fase: 1, tipo: "pergunta", rotulo: "Roda de Amigos", subtitulo: "Convivência Diária", icone: "Users" },
+  { numero: 6, fase: 1, tipo: "pergunta", rotulo: "Checkpoint 1", subtitulo: "Primeiras Escolhas", icone: "ShieldCheck" },
+
+  // FASE 2: Meio - Casas 7 a 14 (Médio: Pressão Social, Apostas/Bets e Riscos)
+  { numero: 7, fase: 2, tipo: "pergunta", rotulo: "Festa de Sexta", subtitulo: "Pressão de Grupo", icone: "Sparkles" },
+  { numero: 8, fase: 2, tipo: "pergunta", rotulo: "Feed do Celular", subtitulo: "Anúncios de Apostas", icone: "Smartphone" },
+  { numero: 9, fase: 2, tipo: "pergunta", rotulo: "Jogos Online", subtitulo: "Armadilhas de Bets", icone: "Gamepad2" },
+  { numero: 10, fase: 2, tipo: "pergunta", rotulo: "Balcão de Tentação", subtitulo: "Ofertas Fáceis", icone: "AlertTriangle" },
+  { numero: 11, fase: 2, tipo: "pergunta", rotulo: "Primeiro Salário", subtitulo: "Gestão do Dinheiro", icone: "CircleDollarSign" },
+  { numero: 12, fase: 2, tipo: "pergunta", rotulo: "Grupo de Mensagens", subtitulo: "Links Suspeitos", icone: "MessageSquare" },
+  { numero: 13, fase: 2, tipo: "pergunta", rotulo: "Fim de Noite", subtitulo: "Limites Pessoais", icone: "Moon" },
+  { numero: 14, fase: 2, tipo: "pergunta", rotulo: "Checkpoint 2", subtitulo: "Maturidade & Alerta", icone: "ShieldAlert" },
+
+  // FASE 3: Reta Final - Casas 15 a 22 (Difícil: Consequências Graves, Recuperação e Futuro)
+  { numero: 15, fase: 3, tipo: "pergunta", rotulo: "Momento Crítico", subtitulo: "Sinais de Dependência", icone: "HeartPulse" },
+  { numero: 16, fase: 3, tipo: "pergunta", rotulo: "Ilusão do Lucro", subtitulo: "Perseguição de Perdas", icone: "TrendingDown" },
+  { numero: 17, fase: 3, tipo: "apoio", rotulo: "Rede de Apoio", subtitulo: "UBS & CAPS-AD", icone: "LifeBuoy" },
+  { numero: 18, fase: 3, tipo: "pergunta", rotulo: "Reconstrução", subtitulo: "Recuperar Vínculos", icone: "HeartHandshake" },
+  { numero: 19, fase: 3, tipo: "pergunta", rotulo: "Grande Encruzilhada", subtitulo: "Decisão Decisiva", icone: "Shuffle" },
+  { numero: 20, fase: 3, tipo: "pergunta", rotulo: "Exemplo Positivo", subtitulo: "Apoio a Outros", icone: "Award" },
+  { numero: 21, fase: 3, tipo: "pergunta", rotulo: "Portão da Consciência", subtitulo: "Reta Final", icone: "Key" },
+  { numero: 22, fase: 3, tipo: "final", rotulo: "O Futuro Chegou!", subtitulo: "Vitória das Escolhas", icone: "Trophy" },
+];
+
 export const PERGUNTAS: Pergunta[] = [
+  // ==================== FASE 1: FÁCIL (Casas 1 a 6) ====================
   {
     id: 1,
+    fase: 1,
+    dificuldade: "fácil",
     tema: "drogas",
-    enunciado: "Numa festa, oferecem uma substância e dizem que é segura porque veio de alguém conhecido. O que você faz?",
+    enunciado: "Numa festa entre conhecidos, alguém oferece um cigarro eletrônico (vape) com aroma de frutas dizendo ser inofensivo. O que você faz?",
     opcoes: [
       {
-        texto: "Aceito só metade para diminuir o risco",
-        efeito: { saude: -20, consciencia: -10 },
-        feedback: "Reduzir a quantidade não torna uma substância desconhecida segura. Composição e potência podem variar muito.",
+        letra: "A",
+        texto: "Recuso com firmeza, lembrando que vapes contêm nicotina e substâncias tóxicas.",
+        efeito: { saude: 15, consciencia: 15, familia: 5 },
+        feedback: "Excelente! O vapor contém metais pesados e nicotina em alta concentração, gerando rápida dependência química.",
+        correta: true,
       },
       {
-        texto: "Recuso, permaneço com pessoas de confiança e procuro outro ambiente",
-        efeito: { saude: 10, consciencia: 15, familia: 5 },
-        feedback: "Você evitou o consumo e também saiu da situação de pressão. Essa combinação oferece maior proteção.",
+        letra: "B",
+        texto: "Dou só uma tragada para ver o gosto e não parecer chato com a turma.",
+        efeito: { saude: -15, consciencia: -10 },
+        feedback: "Cuidado! O primeiro contato com a nicotina pode iniciar uma dependência respiratória silenciosa.",
+        correta: false,
       },
       {
-        texto: "Guardo para pesquisar e experimentar sozinho depois",
-        efeito: { saude: -25, consciencia: -15, familia: -10 },
-        feedback: "Pesquisar não revela a composição real, e usar sozinho aumenta o risco de intoxicação sem ajuda por perto.",
+        letra: "C",
+        texto: "Compro um aparelho para guardar e usar apenas nos fins de semana.",
+        efeito: { saude: -25, dinheiro: -20, consciencia: -15 },
+        feedback: "Gasto desnecessário e risco alto. O uso de fim de semana quase sempre evolui para o uso diário compulsivo.",
+        correta: false,
       },
       {
-        texto: "Fico na festa, mas digo que talvez aceite mais tarde",
-        efeito: { saude: -5, consciencia: -5 },
-        feedback: "Você adiou o uso, mas deixou aberta a negociação e continuou exposto à pressão do grupo.",
+        letra: "D",
+        texto: "Fico em dúvida e deixo para experimentar quando estiver sozinho.",
+        efeito: { saude: -10, consciencia: -10 },
+        feedback: "Usar escondido aumenta o isolamento e mascara os riscos de intoxicação.",
+        correta: false,
       },
     ],
   },
   {
     id: 2,
+    fase: 1,
+    dificuldade: "fácil",
     tema: "apostas",
-    enunciado: "Um aplicativo oferece bônus de R$ 50 se você depositar R$ 20 hoje. Qual decisão parece mais sensata?",
+    enunciado: "Um anúncio pop-up promete dobrar R$ 20 se você se cadastrar hoje numa plataforma de apostas esportivas. Como agir?",
     opcoes: [
       {
-        texto: "Deposito apenas os R$ 20 e retiro assim que ganhar",
+        letra: "A",
+        texto: "Deposito os R$ 20 para testar minha sorte na partida de futebol.",
         efeito: { dinheiro: -20, consciencia: -10 },
-        feedback: "A promessa parece controlada, mas bônus costumam exigir muitas apostas antes de permitir qualquer saque.",
+        feedback: "A promoção de bônus é uma isca projetada por algoritmos para criar o hábito diário de apostar.",
+        correta: false,
       },
       {
-        texto: "Uso o bônus porque não estou apostando meu próprio dinheiro",
-        efeito: { dinheiro: -15, saude: -5, consciencia: -15 },
-        feedback: "O bônus é uma isca para criar frequência de uso; quase sempre há depósito real e regras de saque envolvidas.",
+        letra: "B",
+        texto: "Ignoro a oferta, fecho o anúncio e guardo o dinheiro para meus projetos reais.",
+        efeito: { dinheiro: 15, consciencia: 15, familia: 5 },
+        feedback: "Muito bem! Você não caiu no gatilho do dinheiro fácil e protegeu sua renda.",
+        correta: true,
       },
       {
-        texto: "Ignoro a oferta, bloqueio as notificações e mantenho o dinheiro",
-        efeito: { dinheiro: 10, consciencia: 15 },
-        feedback: "Bloquear o estímulo evita decisões impulsivas e protege seu dinheiro antes que o ciclo comece.",
+        letra: "C",
+        texto: "Compartilho o link com 5 amigos para tentar ganhar comissões de indicação.",
+        efeito: { dinheiro: -10, familia: -10, consciencia: -15 },
+        feedback: "Indicar plataformas de apostas expõe seus amigos e familiares a prejuízos financeiros.",
+        correta: false,
       },
       {
-        texto: "Deposito um valor maior para aproveitar melhor a promoção",
-        efeito: { dinheiro: -30, familia: -10, consciencia: -15 },
-        feedback: "Aumentar o depósito amplia a perda possível. A promoção foi criada para fazer você apostar mais, não para lucrar.",
+        letra: "D",
+        texto: "Crio uma conta falsa usando o CPF de um parente para jogar sem risco.",
+        efeito: { familia: -25, consciencia: -20 },
+        feedback: "Usar dados de terceiros sem autorização é perigoso e abala a confiança familiar.",
+        correta: false,
       },
     ],
   },
   {
     id: 3,
-    tema: "apostas",
-    enunciado: "Depois de perder R$ 200, você sente que está perto de recuperar tudo. O que faz?",
+    fase: 1,
+    dificuldade: "fácil",
+    tema: "hábitos",
+    enunciado: "Você está sobrecarregado com provas e tarefas. Um amigo sugere tomar energéticos misturados com remédios para ficar acordado. O que você faz?",
     opcoes: [
       {
-        texto: "Faço só mais uma aposta, mas com um limite definido",
-        efeito: { dinheiro: -20, consciencia: -10 },
-        feedback: "O limite parece responsável, porém continuar para recuperar uma perda mantém ativo o ciclo de perseguição.",
+        letra: "A",
+        texto: "Tomo a mistura, pois preciso terminar tudo de qualquer jeito.",
+        efeito: { saude: -30, consciencia: -15 },
+        feedback: "Perigoso! Misturar estimulantes sobrecarrega o coração e pode provocar arritmias graves e crises de ansiedade.",
+        correta: false,
       },
       {
-        texto: "Aumento a aposta porque uma vitória compensa as anteriores",
-        efeito: { dinheiro: -30, saude: -10, familia: -15 },
-        feedback: "As apostas anteriores não aumentam sua chance de vencer. Apostar mais apenas coloca mais dinheiro em risco.",
+        letra: "B",
+        texto: "Organizo meu tempo, durmo o necessário e peço ajuda aos professores ou família.",
+        efeito: { saude: 15, familia: 10, consciencia: 15 },
+        feedback: "A escolha certa! Boa rotina de sono e pedidos de apoio são as ferramentas mais saudáveis contra o estresse.",
+        correta: true,
       },
       {
-        texto: "Paro, registro a perda e converso com alguém de confiança",
-        efeito: { dinheiro: 5, familia: 15, consciencia: 15 },
-        feedback: "Reconhecer a perda e pedir apoio interrompe a perseguição e reduz decisões tomadas por impulso.",
+        letra: "C",
+        texto: "Tomo só metade da dose para não exagerar.",
+        efeito: { saude: -15, consciencia: -10 },
+        feedback: "Automedicação sem prescrição médica nunca é segura, mesmo em doses reduzidas.",
+        correta: false,
       },
       {
-        texto: "Mudo para um jogo que parece ter chances melhores",
-        efeito: { dinheiro: -15, consciencia: -5 },
-        feedback: "Trocar de jogo não elimina a vantagem da casa nem resolve a vontade de recuperar o que foi perdido.",
+        letra: "D",
+        texto: "Fico sem dormir a noite toda jogando no celular para aliviar.",
+        efeito: { saude: -20, consciencia: -10 },
+        feedback: "Privação de sono piora a memória, o humor e aumenta o risco de impulsividade.",
+        correta: false,
       },
     ],
   },
   {
     id: 4,
-    tema: "drogas",
-    enunciado: "Um amigo está usando drogas com frequência, mas pede segredo porque teme ser julgado. Como agir?",
+    fase: 1,
+    dificuldade: "fácil",
+    tema: "apostas",
+    enunciado: "Na saída da escola, colegas apostam R$ 10 em um jogo de cartas valendo dinheiro. Convidam você a entrar. Qual a atitude mais consciente?",
     opcoes: [
       {
-        texto: "Prometo segredo e tento cuidar dele sem envolver ninguém",
-        efeito: { familia: -5, consciencia: -5, saude: -5 },
-        feedback: "A intenção é acolher, mas enfrentar isso sozinho pode atrasar ajuda profissional e colocar vocês dois em risco.",
+        letra: "A",
+        texto: "Entro apenas uma vez para não ficar de fora do grupo.",
+        efeito: { dinheiro: -10, consciencia: -5 },
+        feedback: "Apostar por pressão social normaliza o jogo com dinheiro e pode criar vícios prematuros.",
+        correta: false,
       },
       {
-        texto: "Afasto-me até ele decidir parar por conta própria",
+        letra: "B",
+        texto: "Proponho jogarmos apenas por diversão, sem envolver dinheiro de ninguém.",
+        efeito: { consciencia: 15, familia: 5, dinheiro: 10 },
+        feedback: "Ótima liderança! O lazer compartilhado não precisa de apostas para ser divertido e saudável.",
+        correta: true,
+      },
+      {
+        letra: "C",
+        texto: "Aposto R$ 20 para mostrar que tenho mais coragem que os outros.",
+        efeito: { dinheiro: -20, consciencia: -15 },
+        feedback: "Competir por status financeiro é porta de entrada para perdas descontroladas.",
+        correta: false,
+      },
+      {
+        letra: "D",
+        texto: "Empresto meu dinheiro para um colega apostar e cobrar com juros.",
         efeito: { familia: -10, consciencia: -10 },
-        feedback: "O afastamento sem oferecer uma ponte de ajuda pode aumentar o isolamento que alimenta a dependência.",
-      },
-      {
-        texto: "Escuto sem humilhar e busco com ele um adulto ou serviço de saúde",
-        efeito: { familia: 15, consciencia: 15, saude: 5 },
-        feedback: "Acolhimento com apoio responsável preserva a confiança e aproxima a pessoa de tratamento seguro.",
-      },
-      {
-        texto: "Conto para todo o grupo para que todos pressionem pela mudança",
-        efeito: { familia: -20, consciencia: -15 },
-        feedback: "Exposição e pressão coletiva podem gerar vergonha, romper a confiança e afastar a pessoa da ajuda.",
+        feedback: "Financiar apostas de terceiros desgasta amizades e gera conflitos sérios.",
+        correta: false,
       },
     ],
   },
+
+  // ==================== FASE 2: MÉDIO (Casas 7 a 14) ====================
   {
     id: 5,
+    fase: 2,
+    dificuldade: "médio",
     tema: "drogas",
-    enunciado: "Alguém diz que o vape é uma alternativa mais leve porque não tem a fumaça do cigarro. O que você conclui?",
+    enunciado: "Em um evento noturno, colocam bebidas com substâncias desconhecidas no copo de alguém do grupo. O que você faz imediatamente?",
     opcoes: [
       {
-        texto: "Pode ser usado socialmente, desde que eu não compre um aparelho",
-        efeito: { saude: -15, consciencia: -10 },
-        feedback: "Uso ocasional também expõe à nicotina e pode iniciar dependência, mesmo sem ter um aparelho próprio.",
+        letra: "A",
+        texto: "Alertei a pessoa, descarto o copo e busco auxílio com a segurança do evento.",
+        efeito: { saude: 15, familia: 10, consciencia: 20 },
+        feedback: "Decisão corajosa e protetiva! A intervenção rápida evita intoxicações graves e crimes de vulnerabilidade.",
+        correta: true,
       },
       {
-        texto: "O risco é menor se o líquido tiver sabor e procedência conhecida",
-        efeito: { saude: -20, consciencia: -15 },
-        feedback: "Sabor e embalagem não garantem segurança; o aerossol pode conter nicotina, metais e outras substâncias tóxicas.",
+        letra: "B",
+        texto: "Deixo para lá, pois cada um deve cuidar do seu próprio copo.",
+        efeito: { consciencia: -20, familia: -10 },
+        feedback: "A omissão coloca a integridade do seu amigo em risco severo. Cuidar do outro fortalece o grupo.",
+        correta: false,
       },
       {
-        texto: "Evito o uso porque ausência de fumaça não significa ausência de risco",
-        efeito: { saude: 15, consciencia: 15 },
-        feedback: "Correto. O vape produz aerossol com substâncias nocivas e pode causar dependência e lesões pulmonares.",
+        letra: "C",
+        texto: "Bebo um pouco do copo para tentar identificar o que colocaram.",
+        efeito: { saude: -30, consciencia: -20 },
+        feedback: "Nunca consuma líquidos sob suspeita. Substâncias adulteradas podem causar desmaios e paradas cardíacas.",
+        correta: false,
       },
       {
-        texto: "Experimento sem nicotina, pois assim não existe dano",
-        efeito: { saude: -10, consciencia: -5 },
-        feedback: "Mesmo produtos anunciados sem nicotina podem ter composição incerta e substâncias prejudiciais ao pulmão.",
+        letra: "D",
+        texto: "Filmo a situação para postar nas redes sociais antes de avisar.",
+        efeito: { consciencia: -15, familia: -10 },
+        feedback: "Priorize o socorro à vida antes de qualquer registro em redes sociais.",
+        correta: false,
       },
     ],
   },
   {
     id: 6,
+    fase: 2,
+    dificuldade: "médio",
     tema: "apostas",
-    enunciado: "Você percebe que as apostas estão tirando seu sono e atrapalhando os estudos. Qual é o melhor primeiro passo?",
+    enunciado: "Você acabou de perder R$ 150 em apostas online. Sente raiva e a vontade incontrolável de apostar mais R$ 200 para 'recuperar'. O que faz?",
     opcoes: [
       {
-        texto: "Crio horários fixos para apostar sem atrapalhar minhas tarefas",
-        efeito: { saude: -10, dinheiro: -10, consciencia: -5 },
-        feedback: "Organizar o horário parece controle, mas mantém o acesso e não enfrenta a perda de controle já percebida.",
+        letra: "A",
+        texto: "Aumento o valor da aposta na certeza de que a sorte vai virar agora.",
+        efeito: { dinheiro: -35, saude: -15, consciencia: -20 },
+        feedback: "Esse é o clássico 'efeito perseguição' (chasing losses). A máquina é programada matematicamente para aumentar sua perda.",
+        correta: false,
       },
       {
-        texto: "Desinstalo os aplicativos, bloqueio os sites e conto a alguém",
-        efeito: { saude: 10, dinheiro: 10, familia: 10, consciencia: 15 },
-        feedback: "Criar barreiras e buscar apoio reduz o acesso imediato e aumenta sua chance de manter a decisão.",
+        letra: "B",
+        texto: "Reconheço o prejuízo, fecho o app imediatamente e conto o ocorrido a alguém de confiança.",
+        efeito: { consciencia: 20, familia: 15, dinheiro: 5 },
+        feedback: "Parabéns! Interromper o impulso e aceitar a perda pontual é o ato que impede o endividamento catastrófico.",
+        correta: true,
       },
       {
-        texto: "Continuo até recuperar o prejuízo e depois faço uma pausa",
-        efeito: { saude: -15, dinheiro: -30, familia: -10, consciencia: -15 },
-        feedback: "Condicionar a parada à recuperação aprofunda o prejuízo e prolonga o comportamento compulsivo.",
+        letra: "C",
+        texto: "Peço dinheiro emprestado com a promessa de devolver com o lucro da próxima aposta.",
+        efeito: { dinheiro: -30, familia: -25, consciencia: -20 },
+        feedback: "Pedir dinheiro emprestado para apostar é um dos sintomas mais graves do transtorno do jogo compulsivo.",
+        correta: false,
       },
       {
-        texto: "Troco apostas com dinheiro por versões gratuitas",
-        efeito: { saude: -5, consciencia: -5 },
-        feedback: "Pode reduzir a perda imediata, mas mantém os gatilhos, o tempo de tela e o hábito de apostar.",
+        letra: "D",
+        texto: "Mudo para o 'jogo do tigrinho' ou roleta porque dizem que paga mais rápido.",
+        efeito: { dinheiro: -25, consciencia: -15 },
+        feedback: "Cassinos online possuem margem matemática da casa de até 97% a favor deles. Não há estratégia que vença o algoritmo.",
+        correta: false,
       },
     ],
   },
   {
     id: 7,
+    fase: 2,
+    dificuldade: "médio",
     tema: "drogas",
-    enunciado: "Sua família percebe mudanças no seu comportamento e pede uma conversa. Como responder?",
+    enunciado: "Um colega próximo mudou de comportamento, falta às aulas e pede dinheiro com desculpas vagas para manter o uso diário de drogas. Como ajudá-lo?",
     opcoes: [
       {
-        texto: "Aceito conversar, conto o que está acontecendo e peço apoio",
-        efeito: { familia: 20, consciencia: 15, saude: 5 },
-        feedback: "Falar com honestidade fortalece a rede de apoio e facilita o acesso à ajuda antes que a situação piore.",
+        letra: "A",
+        texto: "Empresto o dinheiro para evitar que ele fique agressivo ou em abstinência.",
+        efeito: { dinheiro: -15, familia: -10, consciencia: -10 },
+        feedback: "Financiar o uso sem querer adia a busca por ajuda médica e aprofunda a dependência.",
+        correta: false,
       },
       {
-        texto: "Digo que está tudo bem para não preocupar ninguém",
-        efeito: { familia: -10, consciencia: -10, saude: -5 },
-        feedback: "Parece proteção, mas esconder o problema aumenta o isolamento e impede que a família ajude.",
+        letra: "B",
+        texto: "Escuto com empatia, não financio o consumo e busco orientação no CAPS ou serviço de saúde.",
+        efeito: { familia: 20, consciencia: 20, saude: 10 },
+        feedback: "Atitude perfeita! Acolher sem julgar e orientar para serviços públicos gratuitos como o CAPS-AD salva vidas.",
+        correta: true,
       },
       {
-        texto: "Peço para conversar outro dia e evito o assunto",
-        efeito: { familia: -5, consciencia: -5 },
-        feedback: "Escolher um momento melhor pode ser válido, mas evitar repetidamente adia o apoio necessário.",
+        letra: "C",
+        texto: "Espalho a fofoca para todos na escola para forçá-lo a mudar.",
+        efeito: { familia: -20, consciencia: -20 },
+        feedback: "Expor a vulnerabilidade alheia gera humilhação e afasta a pessoa da rede de apoio necessária.",
+        correta: false,
       },
       {
-        texto: "Acuso todos de invasão e corto o contato",
-        efeito: { familia: -25, saude: -10, consciencia: -10 },
-        feedback: "Romper vínculos elimina uma importante proteção e deixa o problema mais difícil de enfrentar sozinho.",
+        letra: "D",
+        texto: "Corto amizade de vez e bloqueio o contato para não me incomodar.",
+        efeito: { familia: -10, consciencia: -10 },
+        feedback: "O isolamento social é o principal combustível do agravamento do vício.",
+        correta: false,
       },
     ],
   },
   {
     id: 8,
+    fase: 2,
+    dificuldade: "médio",
     tema: "apostas",
-    enunciado: "Um influenciador mostra ganhos, carros e uma planilha que supostamente prova seu método. Como avaliar?",
+    enunciado: "Influenciadores digitais famosos exibem carros de luxo afirmando que enriqueceram com 'robôs de sinais' de apostas. Qual a verdade por trás disso?",
     opcoes: [
       {
-        texto: "Testo com pouco dinheiro antes de decidir se o método funciona",
-        efeito: { dinheiro: -15, consciencia: -10 },
-        feedback: "Um teste curto pode coincidir com sorte e não comprova o método; ainda coloca dinheiro real em risco.",
+        letra: "A",
+        texto: "Eles ganham dinheiro recebendo comissões por cada perda dos seguidores que cadastram.",
+        efeito: { consciencia: 20, dinheiro: 15, familia: 5 },
+        feedback: "Exatamente! Contratos de afiliação pagam aos influenciadores uma porcentagem das perdas financeiras do público que eles enganam.",
+        correta: true,
       },
       {
-        texto: "Verifico se ele é patrocinado e lembro que ganhos não mostram as perdas",
-        efeito: { dinheiro: 10, consciencia: 15 },
-        feedback: "Publicidade, recortes de vitórias e resultados não auditados criam uma imagem enganosa de sucesso.",
+        letra: "B",
+        texto: "Acredito e compro o robô de sinais por R$ 97 para lucrar como eles.",
+        efeito: { dinheiro: -30, consciencia: -15 },
+        feedback: "Golpe comum. Contas de demonstração são manipuladas para mostrar lucros falsos em vídeos gravados.",
+        correta: false,
       },
       {
-        texto: "Sigo apenas as apostas com maior porcentagem indicada na planilha",
-        efeito: { dinheiro: -20, consciencia: -10 },
-        feedback: "Números bem apresentados podem parecer científicos sem serem verificáveis; a casa mantém sua vantagem.",
+        letra: "C",
+        texto: "Sigo os sinais deles apenas de madrugada, quando o sistema supostamente falha.",
+        efeito: { dinheiro: -20, saude: -15, consciencia: -10 },
+        feedback: "Não existem horários de falha. Os cassinos operam com geradores de números aleatórios certificados contra o jogador.",
+        correta: false,
       },
       {
-        texto: "Compro o curso para ter as mesmas informações que ele",
-        efeito: { dinheiro: -25, familia: -5, consciencia: -15 },
-        feedback: "Além de pagar pelo curso, você continua exposto às perdas. O lucro mais seguro pode ser o de quem vende o método.",
+        letra: "D",
+        texto: "Aposto o dinheiro da conta de luz familiar confiando no influenciador.",
+        efeito: { dinheiro: -40, familia: -30, consciencia: -25 },
+        feedback: "Comprometer recursos vitais da família gera crises profundas e sofrimento evitável.",
+        correta: false,
       },
     ],
   },
+
+  // ==================== FASE 3: DIFÍCIL (Casas 15 a 22) ====================
   {
     id: 9,
+    fase: 3,
+    dificuldade: "difícil",
     tema: "drogas",
-    enunciado: "Uma pessoa quer reduzir o uso de álcool ou outras drogas, mas diz que ainda não precisa de tratamento. O que sugerir?",
+    enunciado: "Uma pessoa entra em crise de abstinência grave por dependência química. A família está desesperada sem saber para onde ligar. Qual é a orientação correta?",
     opcoes: [
       {
-        texto: "Esperar chegar ao fundo do poço para o tratamento funcionar",
-        efeito: { saude: -25, familia: -15, consciencia: -15 },
-        feedback: "Não é preciso chegar a uma crise. Quanto mais cedo houver cuidado, maiores são as possibilidades de recuperação.",
+        letra: "A",
+        texto: "Trancar a pessoa no quarto escuro até os sintomas passarem sozinhos.",
+        efeito: { saude: -40, familia: -25, consciencia: -25 },
+        feedback: "Abstinência severa pode provocar convulsões, alucinações e risco de óbito. Exige supervisão médica imediata.",
+        correta: false,
       },
       {
-        texto: "Buscar orientação na UBS ou no CAPS-AD, mesmo sem saber se há dependência",
-        efeito: { saude: 15, familia: 10, consciencia: 20 },
-        feedback: "Os serviços públicos podem avaliar a situação e orientar gratuitamente, sem exigir que ela esteja no limite.",
+        letra: "B",
+        texto: "Acionar o SAMU (192) ou levar ao CAPS-AD/Pronto Atendimento SUS para acolhimento médico especializado.",
+        efeito: { saude: 25, familia: 25, consciencia: 25 },
+        feedback: "Excelente! O SUS oferece tratamento multidisciplinar gratuito (médicos, psicólogos, terapeutas) pelo CAPS-AD e rede hospitalar.",
+        correta: true,
       },
       {
-        texto: "Tentar parar sozinho primeiro para provar que tem controle",
-        efeito: { saude: -5, consciencia: -10 },
-        feedback: "A tentativa parece determinada, mas transformar ajuda em prova de força pode atrasar cuidados e aumentar a culpa.",
+        letra: "C",
+        texto: "Oferecer bebidas alcoólicas fortes para tentar acalmar o sistema nervoso.",
+        efeito: { saude: -35, consciencia: -20 },
+        feedback: "Misturar depressores do sistema nervoso pode provocar coma e colapso cardiorrespiratório.",
+        correta: false,
       },
       {
-        texto: "Substituir a substância por outra considerada menos prejudicial",
-        efeito: { saude: -15, consciencia: -10 },
-        feedback: "A substituição sem orientação pode manter a dependência ou criar novos riscos, em vez de tratar suas causas.",
+        letra: "D",
+        texto: "Chamar curandeiros da internet que cobram fortunas por receitas milagrosas.",
+        efeito: { dinheiro: -30, familia: -20, saude: -20 },
+        feedback: "Golpistas se aproveitam do desespero das famílias. Confie na ciência, no SUS e em profissionais habilitados.",
+        correta: false,
       },
     ],
   },
   {
     id: 10,
+    fase: 3,
+    dificuldade: "difícil",
     tema: "apostas",
-    enunciado: "Você recebeu R$ 300 do primeiro trabalho e quer usar uma parte para se divertir. Qual escolha protege melhor seu futuro?",
+    enunciado: "Um familiar perdeu o emprego e começou a passar noites inteiras apostando online, acumulando dívidas com agiotas. Como agir de forma resolutiva?",
     opcoes: [
       {
-        texto: "Separo uma parte para gastos e guardo o restante antes de decidir",
-        efeito: { dinheiro: 20, familia: 10, consciencia: 10 },
-        feedback: "Definir limites antes do impulso protege sua reserva sem impedir uma diversão planejada.",
+        letra: "A",
+        texto: "Pagar todas as dívidas dele em segredo para não preocupar o restante da família.",
+        efeito: { dinheiro: -40, familia: -20, consciencia: -10 },
+        feedback: "Pagar dívidas sem tratar o vício apenas alimenta o ciclo. O jogador volta a apostar pois não enfrentou o problema.",
+        correta: false,
       },
       {
-        texto: "Aposto apenas o que eu aceitaria gastar em outro lazer",
-        efeito: { dinheiro: -10, consciencia: -5 },
-        feedback: "A comparação com lazer parece prudente, mas a aposta pode incentivar novas tentativas e ultrapassar o limite inicial.",
+        letra: "B",
+        texto: "Reunir a família com amor, bloquear acessos bancários com consentimento e buscar atendimento psicológico especializado.",
+        efeito: { familia: 25, consciencia: 25, dinheiro: 15, saude: 10 },
+        feedback: "Perfeito! O transtorno do jogo patológico é classificado pela OMS como doença. Proteção financeira e terapia são os pilares da recuperação.",
+        correta: true,
       },
       {
-        texto: "Aposto metade em opções consideradas mais seguras",
-        efeito: { dinheiro: -25, familia: -10, consciencia: -10 },
-        feedback: "Nenhuma aposta é investimento seguro. Mesmo resultados prováveis podem falhar e a plataforma cobra sua vantagem.",
+        letra: "C",
+        texto: "Incentivar ele a apostar no time do coração para 'virar a sorte' de uma vez.",
+        efeito: { dinheiro: -35, familia: -25, consciencia: -20 },
+        feedback: "Apostas emocionais aumentam o desespero e aprofundam a ruína financeira.",
+        correta: false,
       },
       {
-        texto: "Uso tudo em uma aposta para tentar transformar R$ 300 em R$ 600",
-        efeito: { dinheiro: -35, familia: -15, consciencia: -15 },
-        feedback: "Colocar toda a renda em um resultado incerto ameaça necessidades reais e reforça a ilusão do dinheiro fácil.",
+        letra: "D",
+        texto: "Expulsar a pessoa de casa sem direito a diálogo ou busca por tratamento.",
+        efeito: { familia: -30, saude: -20, consciencia: -15 },
+        feedback: "A rejeição radical pode empurrar o indivíduo para a marginalidade ou desfechos fatais.",
+        correta: false,
       },
     ],
   },
   {
     id: 11,
+    fase: 3,
+    dificuldade: "difícil",
     tema: "drogas",
-    enunciado: "Oferecem dinheiro para você levar um pacote fechado sem dizer o conteúdo. Qual reação é mais segura?",
+    enunciado: "Após meses em recuperação, um colega tem uma recaída e consome álcool/substâncias em um momento de dor emocional. Como interpretar a situação?",
     opcoes: [
       {
-        texto: "Aceito depois de confirmar que não preciso abrir o pacote",
-        efeito: { dinheiro: 5, saude: -20, familia: -20, consciencia: -20 },
-        feedback: "Não abrir o pacote não elimina responsabilidade nem risco. O segredo é justamente parte da tentativa de envolvimento.",
+        letra: "A",
+        texto: "Compreender que recaídas fazem parte do processo crônico de recuperação e encorajar o retorno imediato ao tratamento.",
+        efeito: { consciencia: 25, familia: 20, saude: 15 },
+        feedback: "Visão madura e científica! Uma recaída não anula todo o progresso feito. O apoio rápido restabelece o caminho da sobriedade.",
+        correta: true,
       },
       {
-        texto: "Recuso, saio do local e procuro um adulto ou canal seguro de ajuda",
-        efeito: { consciencia: 20, familia: 10, saude: 5 },
-        feedback: "Recusar e buscar apoio reduz o risco de coerção, violência e envolvimento criminal.",
+        letra: "B",
+        texto: "Condená-lo como caso perdido e dizer que o tratamento nunca funcionará para ele.",
+        efeito: { familia: -25, consciencia: -25, saude: -15 },
+        feedback: "O estigma e o julgamento destrutivo levam ao abandono do tratamento e ao agravamento da crise.",
+        correta: false,
       },
       {
-        texto: "Peço para ver o conteúdo antes de decidir",
-        efeito: { saude: -10, consciencia: -10 },
-        feedback: "Investigar sozinho prolonga o contato e pode aumentar a pressão ou a ameaça sobre você.",
+        letra: "C",
+        texto: "Celebrar com ele, fingindo que a recaída é algo normal e sem importância.",
+        efeito: { saude: -25, consciencia: -20 },
+        feedback: "Minimizar o risco impede que a pessoa reconheça os gatilhos que causaram o tropeço.",
+        correta: false,
       },
       {
-        texto: "Levo uma vez e uso o dinheiro para ajudar em casa",
-        efeito: { dinheiro: 10, saude: -25, familia: -25, consciencia: -20 },
-        feedback: "Uma boa intenção não torna a ação segura. O primeiro transporte pode virar chantagem e gerar consequências graves.",
+        letra: "D",
+        texto: "Aconselhar que ele só procure ajuda se tiver uma overdose grave.",
+        efeito: { saude: -35, consciencia: -30 },
+        feedback: "Esperar o extremo pode ser fatal. A intervenção precoce é a chave para salvar vidas.",
+        correta: false,
       },
     ],
   },
   {
     id: 12,
+    fase: 3,
+    dificuldade: "difícil",
     tema: "apostas",
-    enunciado: "Você começou a esconder quanto aposta para evitar discussões em casa. Como interpretar isso?",
+    enunciado: "Você chega à etapa final de suas decisões na vida. O que define uma pessoa verdadeiramente vitoriosa e realizada?",
     opcoes: [
       {
-        texto: "É um sinal de alerta; preciso interromper e procurar apoio",
-        efeito: { consciencia: 20, familia: 15, saude: 5 },
-        feedback: "Reconhecer o segredo como alerta permite buscar ajuda antes que perdas e conflitos aumentem.",
+        letra: "A",
+        texto: "Vencer acumulando o máximo de dinheiro em apostas de alto risco, mesmo sacrificando saúde e família.",
+        efeito: { dinheiro: -20, familia: -25, saude: -20 },
+        feedback: "O dinheiro passageiro não compensa a perda dos vínculos afetivos, da paz mental e da integridade física.",
+        correta: false,
       },
       {
-        texto: "Mantenho em segredo até recuperar o dinheiro e então conto tudo",
-        efeito: { dinheiro: -25, familia: -15, consciencia: -15 },
-        feedback: "A promessa de contar depois depende de continuar apostando e costuma aprofundar tanto a perda quanto a mentira.",
+        letra: "B",
+        texto: "Equilibrar saúde, família, estabilidade e consciência, sabendo dizer não às ilusões e apoiando quem precisa.",
+        efeito: { saude: 30, dinheiro: 25, familia: 30, consciencia: 30 },
+        feedback: "Sensacional! Esse é o verdadeiro Grande Campeão da Vida: aquele que constrói um futuro sólido com escolhas reais e conscientes!",
+        correta: true,
       },
       {
-        texto: "Defino um limite menor para não precisar falar sobre o assunto",
-        efeito: { dinheiro: -10, familia: -10, consciencia: -10 },
-        feedback: "Reduzir o valor parece controle, mas esconder continua sendo um sinal de que a aposta já afeta seus vínculos.",
+        letra: "C",
+        texto: "Viver sem regras e sem pensar nas consequências de amanhã.",
+        efeito: { saude: -20, consciencia: -20, familia: -15 },
+        feedback: "Viver no imediatismo gera vazios e dependências difíceis de reparar mais tarde.",
+        correta: false,
       },
       {
-        texto: "É apenas privacidade, pois o dinheiro é meu",
-        efeito: { dinheiro: -15, familia: -10, consciencia: -10 },
-        feedback: "Privacidade é diferente de esconder por medo das consequências. A vergonha e o segredo alimentam o ciclo.",
+        letra: "D",
+        texto: "Acreditar que o sucesso depende exclusivamente de sorte e apostas.",
+        efeito: { dinheiro: -25, consciencia: -25 },
+        feedback: "Sorte é ilusão comercial. Sucesso duradouro nasce de constância, estudo, respeito e saúde emocional.",
+        correta: false,
       },
     ],
   },
-];
-
-export const EVENTOS: { texto: string; efeito: Efeito }[] = [
-  { texto: "Você participou de uma palestra na escola sobre prevenção.", efeito: { consciencia: 10, saude: 5 } },
-  { texto: "Notificação de bônus de aposta chegou no seu celular e te tentou a noite toda.", efeito: { saude: -5, consciencia: -5 } },
-  { texto: "Você praticou esporte com os amigos: lazer sem substâncias.", efeito: { saude: 15, familia: 5 } },
-  { texto: "Gastou o lanche da semana em raspadinhas online.", efeito: { dinheiro: -15 } },
-  { texto: "Sua família te apoiou em um momento difícil.", efeito: { familia: 15, saude: 5 } },
-  { texto: "Noite sem dormir rolando apps de aposta.", efeito: { saude: -15, dinheiro: -5 } },
-  { texto: "Você ajudou um colega a procurar o CAPS-AD.", efeito: { consciencia: 15, familia: 10 } },
-  { texto: "Começou a fumar para 'aliviar o estresse'.", efeito: { saude: -15, dinheiro: -5 } },
-];
-
-export const DESCANSOS = [
-  "Pausa: você dormiu bem e recuperou energia.",
-  "Pausa: terapia na escola ajudou a organizar as ideias.",
-  "Pausa: um domingo em família fez bem.",
-];
-
-export const TABULEIRO: Casa[] = [
-  { tipo: "inicio", rotulo: "Início" },
-  { tipo: "pergunta", rotulo: "Escola" },
-  { tipo: "pergunta", rotulo: "Rua" },
-  { tipo: "pergunta", rotulo: "Festa" },
-  { tipo: "pergunta", rotulo: "Casa" },
-  { tipo: "pergunta", rotulo: "Celular" },
-  { tipo: "pergunta", rotulo: "Praça" },
-  { tipo: "pergunta", rotulo: "Amigos" },
-  { tipo: "pergunta", rotulo: "Trabalho" },
-  { tipo: "pergunta", rotulo: "Casa" },
-  { tipo: "pergunta", rotulo: "Internet" },
-  { tipo: "pergunta", rotulo: "Bar" },
-  { tipo: "pergunta", rotulo: "Família" },
-  { tipo: "pergunta", rotulo: "Shopping" },
-  { tipo: "pergunta", rotulo: "Decisão" },
-  { tipo: "pergunta", rotulo: "Posto de saúde" },
-  { tipo: "pergunta", rotulo: "Redes sociais" },
-  { tipo: "pergunta", rotulo: "Bairro" },
-  { tipo: "pergunta", rotulo: "Encruzilhada" },
-  { tipo: "final", rotulo: "Futuro" },
 ];
 
 export type Final = {
@@ -410,41 +536,41 @@ export function calcularFinal(p: {
     return {
       titulo: "Final: A saúde cobrou a conta",
       descricao:
-        "O corpo não aguentou. Internação, tratamento longo e um recomeço difícil. A dependência química é doença e tem tratamento gratuito pelo SUS — quanto antes, melhor.",
+        "O corpo sentiu as consequências do uso de substâncias e noites em claro. A dependência química é uma doença e tem tratamento gratuito pelo SUS — acolhimento no CAPS-AD e na UBS é o caminho para recomeçar.",
       tom: "ruim",
     };
   if (p.dinheiro <= 15)
     return {
-      titulo: "Final: Afundado em dívidas",
+      titulo: "Final: Afundado em dívidas de apostas",
       descricao:
-        "As apostas levaram tudo: salário, poupança e dinheiro emprestado. A casa de apostas nunca perde — quem perde é sempre o jogador.",
+        "As plataformas de apostas levaram economias e geraram dívidas difíceis. A casa de apostas foi programada para lucrar — quem aposta repetidamente sempre perde. Reorganizar as finanças e buscar apoio é urgente.",
       tom: "ruim",
     };
   if (p.familia <= 15)
     return {
-      titulo: "Final: Sozinho",
+      titulo: "Final: Afastado de quem ama",
       descricao:
-        "Mentiras e brigas afastaram todo mundo. O isolamento é combustível do vício. Reconstruir vínculos é parte essencial de qualquer recuperação.",
+        "Mentiras e segredos afastaram os familiares e amigos mais leais. O isolamento alimenta o ciclo do vício. Pedir desculpas e reconstruir a confiança é o primeiro passo para ter paz de novo.",
       tom: "ruim",
     };
   if (total >= 280)
     return {
-      titulo: "Final: Livre e consciente",
+      titulo: "Final: Livre, Consciente & Campeão",
       descricao:
-        "Você atravessou a pressão, soube dizer não e ainda ajudou outras pessoas. Hoje você é referência de prevenção na sua comunidade.",
+        "Você resistiu à pressão social, identificou as armadilhas das apostas e escolheu hábitos que protegem sua saúde física e mental. Você é inspiração e referência de prevenção para todos ao seu redor!",
       tom: "bom",
     };
   if (total >= 200)
     return {
-      titulo: "Final: De pé, com cicatrizes",
+      titulo: "Final: De pé, com aprendizados",
       descricao:
-        "Você escorregou algumas vezes, mas pediu ajuda a tempo. A recuperação é um caminho com recaídas — o que importa é não parar de buscar apoio.",
+        "Você enfrentou momentos difíceis e tentações, mas soube pedir ajuda e reconhecer erros a tempo. A maturidade nasce de saber se reerguer e manter o rumo certo.",
       tom: "medio",
     };
   return {
     titulo: "Final: Na corda bamba",
     descricao:
-      "Você chegou ao fim ainda preso ao ciclo de apostas e substâncias. Ainda dá tempo: CAPS-AD, UBS e a própria família são portas abertas.",
+      "Você chegou ao fim ainda vulnerável às promessas fáceis e às pressões de grupo. Lembre-se: sempre há tempo de procurar uma UBS, o CAPS-AD ou conversar francamente com quem quer o seu bem.",
     tom: "ruim",
   };
 }

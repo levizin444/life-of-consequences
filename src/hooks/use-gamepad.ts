@@ -3,31 +3,32 @@ import { useEffect, useRef, useState } from "react";
 export type Direcao = "cima" | "baixo" | "esquerda" | "direita";
 
 export type UseGamepadOptions = {
-  jogadorAtivoId: number; // 0 = Jogador 1, 1 = Jogador 2, 2 = Jogador 3, 3 = Jogador 4
-  bloqueioTurno?: boolean; // Se true, apenas o controle do jogador ativo responde aos comandos
-  modoCompartilhado?: boolean; // Se true, permite que um único controle controle todos os turnos
-  onConfirm: () => void;
-  onMove: (direcao: Direcao) => void;
-  onAjuda?: () => void;
-  onForcaDown?: () => void;
-  onForcaUp?: () => void;
+  // Chamado quando um jogador seleciona uma alternativa (0 = A, 1 = B, 2 = C / X, 3 = D / Y)
+  onPlayerAnswer?: (jogadorId: number, opcao: 0 | 1 | 2 | 3) => void;
+  // Chamado quando um jogador aciona a Rede de Apoio (botão Y/△ ou LB/RB)
+  onPlayerAjuda?: (jogadorId: number) => void;
+  // Chamado quando algum jogador pressiona o botão de confirmação geral (A ou Start)
+  onConfirm?: (jogadorId?: number) => void;
+  // Chamado para movimentação nos menus / cards
+  onMove?: (direcao: Direcao, jogadorId?: number) => void;
 };
 
 export type UseGamepadReturn = {
-  conectado: boolean;
   controlesConectados: boolean[];
   quantidadeConectados: number;
-  controleAtivoConectado: boolean;
+  algumConectado: boolean;
 };
 
-const BOTOES_CONFIRMA = [0, 9]; // 0 = A (Xbox) / X (PlayStation), 9 = Start / Options
 const EIXO_LIMITE = 0.6;
-const REPETICAO = 220;
+const REPETICAO = 240;
 
 type EstadoPad = {
-  confirmaAnterior: boolean;
-  ajudaAnterior: boolean;
-  forcaAnterior: boolean;
+  btnAAnterior: boolean;
+  btnBAnterior: boolean;
+  btnXAnterior: boolean;
+  btnYAnterior: boolean;
+  btnStartAnterior: boolean;
+  btnBumperAnterior: boolean;
   direcaoAnterior: Direcao | null;
   ultimoMovimento: number;
 };
@@ -47,10 +48,10 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
 
     let frame = 0;
     const estadosPads: EstadoPad[] = [
-      { confirmaAnterior: false, ajudaAnterior: false, forcaAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { confirmaAnterior: false, ajudaAnterior: false, forcaAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { confirmaAnterior: false, ajudaAnterior: false, forcaAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { confirmaAnterior: false, ajudaAnterior: false, forcaAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
     ];
 
     const atualizaConexoes = () => {
@@ -74,23 +75,51 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
         return prev;
       });
 
-      const { jogadorAtivoId, bloqueioTurno = true, modoCompartilhado = false } = acoes.current;
-
       for (let i = 0; i < 4; i++) {
         const pad = rawPads[i];
         const estado = estadosPads[i]!;
         if (!pad || !pad.connected) {
-          estado.confirmaAnterior = false;
-          estado.ajudaAnterior = false;
-          estado.forcaAnterior = false;
+          estado.btnAAnterior = false;
+          estado.btnBAnterior = false;
+          estado.btnXAnterior = false;
+          estado.btnYAnterior = false;
+          estado.btnStartAnterior = false;
+          estado.btnBumperAnterior = false;
           estado.direcaoAnterior = null;
           continue;
         }
 
-        const confirma = BOTOES_CONFIRMA.some((b) => pad.buttons[b]?.pressed);
-        const ajuda = Boolean(pad.buttons[3]?.pressed); // Y (Xbox) / Triângulo (PS)
-        const forca = Boolean(pad.buttons[2]?.pressed); // X (Xbox) / Quadrado (PS)
+        const btnA = Boolean(pad.buttons[0]?.pressed); // A (Xbox) / X (PS)
+        const btnB = Boolean(pad.buttons[1]?.pressed); // B (Xbox) / O (PS)
+        const btnX = Boolean(pad.buttons[2]?.pressed); // X (Xbox) / ◽ (PS)
+        const btnY = Boolean(pad.buttons[3]?.pressed); // Y (Xbox) / △ (PS)
+        const btnStart = Boolean(pad.buttons[9]?.pressed || pad.buttons[8]?.pressed); // Start / Select
+        const btnBumper = Boolean(pad.buttons[4]?.pressed || pad.buttons[5]?.pressed); // LB / RB
 
+        // RESPOSTAS MULTIPLAYER SIMULTÂNEAS:
+        // Cada controle (i) envia sua escolha individual independente dos outros!
+        if (btnA && !estado.btnAAnterior) {
+          acoes.current.onPlayerAnswer?.(i, 0); // Opção A
+          acoes.current.onConfirm?.(i);
+        }
+        if (btnB && !estado.btnBAnterior) {
+          acoes.current.onPlayerAnswer?.(i, 1); // Opção B
+        }
+        if (btnX && !estado.btnXAnterior) {
+          acoes.current.onPlayerAnswer?.(i, 2); // Opção C / X
+        }
+        if (btnY && !estado.btnYAnterior) {
+          acoes.current.onPlayerAnswer?.(i, 3); // Opção D / Y
+          acoes.current.onPlayerAjuda?.(i);
+        }
+        if (btnBumper && !estado.btnBumperAnterior) {
+          acoes.current.onPlayerAjuda?.(i);
+        }
+        if (btnStart && !estado.btnStartAnterior) {
+          acoes.current.onConfirm?.(i);
+        }
+
+        // Direcionais
         let direcao: Direcao | null = null;
         if (pad.buttons[12]?.pressed) direcao = "cima";
         else if (pad.buttons[13]?.pressed) direcao = "baixo";
@@ -106,29 +135,18 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
           else if (x > EIXO_LIMITE) direcao = "direita";
         }
 
-        // REGRA DE OURO: Bloqueio de Turno
-        // Se o bloqueio de turno estiver ativo, APENAS o controle associado ao jogador ativo (pad.index === jogadorAtivoId)
-        // surtirá efeito no jogo. Se outros jogadores pressionarem botões, serão ignorados!
-        const ehJogadorAtivo = modoCompartilhado ? true : i === jogadorAtivoId;
-        const podeExecutar = !bloqueioTurno || ehJogadorAtivo;
-
-        if (podeExecutar) {
-          if (confirma && !estado.confirmaAnterior) acoes.current.onConfirm();
-          if (ajuda && !estado.ajudaAnterior) acoes.current.onAjuda?.();
-          if (forca && !estado.forcaAnterior) acoes.current.onForcaDown?.();
-          if (!forca && estado.forcaAnterior) acoes.current.onForcaUp?.();
-
-          const agora = performance.now();
-          if (direcao && (direcao !== estado.direcaoAnterior || agora - estado.ultimoMovimento > REPETICAO)) {
-            acoes.current.onMove(direcao);
-            estado.ultimoMovimento = agora;
-          }
+        const agora = performance.now();
+        if (direcao && (direcao !== estado.direcaoAnterior || agora - estado.ultimoMovimento > REPETICAO)) {
+          acoes.current.onMove?.(direcao, i);
+          estado.ultimoMovimento = agora;
         }
 
-        // Atualiza sempre o estado anterior deste pad para evitar disparos acidentais ao mudar de turno
-        estado.confirmaAnterior = confirma;
-        estado.ajudaAnterior = ajuda;
-        estado.forcaAnterior = forca;
+        estado.btnAAnterior = btnA;
+        estado.btnBAnterior = btnB;
+        estado.btnXAnterior = btnX;
+        estado.btnYAnterior = btnY;
+        estado.btnStartAnterior = btnStart;
+        estado.btnBumperAnterior = btnBumper;
         estado.direcaoAnterior = direcao;
       }
 
@@ -148,13 +166,11 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
   }, []);
 
   const quantidadeConectados = controlesConectados.filter(Boolean).length;
-  const conectado = quantidadeConectados > 0;
-  const controleAtivoConectado = Boolean(controlesConectados[opcoes.jogadorAtivoId]);
+  const algumConectado = quantidadeConectados > 0;
 
   return {
-    conectado,
     controlesConectados,
     quantidadeConectados,
-    controleAtivoConectado,
+    algumConectado,
   };
 }
