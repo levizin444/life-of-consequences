@@ -35,6 +35,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  Star,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -47,6 +48,7 @@ import {
   type Pergunta,
 } from "@/lib/game-data";
 import { useGamepad } from "@/hooks/use-gamepad";
+import { MinigameModal, type EventoMinigame } from "@/components/minigames/MinigameModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -180,7 +182,7 @@ type Jogador = {
   erros: number;
 };
 
-type Fase = "setup" | "tutorial" | "pergunta_simultanea" | "revelacao" | "fim";
+type Fase = "setup" | "tutorial" | "pergunta_simultanea" | "revelacao" | "minigame" | "fim";
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
 const CRITICO = 25;
@@ -245,7 +247,7 @@ const CARDS_TUTORIAL = [
     tag: "O OBJETIVO DO JOGO",
     titulo: "O Caminho das Escolhas",
     texto:
-      "Você e seus amigos percorrem uma trilha de 22 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
+      "Você e seus amigos percorrem uma trilha de 30 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
     icone: Target,
     corTag: "text-primary bg-primary/10 border-primary/20",
     corIcone: "text-primary",
@@ -283,7 +285,7 @@ const CARDS_TUTORIAL = [
   {
     numero: 5,
     tag: "O GRANDE CAMPEÃO & FUTURO",
-    titulo: "Chegue à Casa 22!",
+    titulo: "Chegue à Casa 30!",
     texto:
       "A partida é vencida por quem cruzar o portal do Futuro e mantiver o maior equilíbrio de vida. No encerramento, o Grande Campeão é coroado com troféu dourado, fanfarra e chuva de confetes!",
     icone: Trophy,
@@ -316,12 +318,14 @@ function renderIconeCasa(icone: string, className = "size-4") {
     case "Shuffle": return <Shuffle className={className} />;
     case "Award": return <Award className={className} />;
     case "Trophy": return <Trophy className={className} />;
+    case "Star": return <Star className={className} />;
     default: return <Sparkles className={className} />;
   }
 }
 
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
+  const [filaMinigames, setFilaMinigames] = useState<EventoMinigame[]>([]);
   const [quantidade, setQuantidade] = useState(4);
   const [cardTutorial, setCardTutorial] = useState(0);
 
@@ -543,6 +547,20 @@ function Jogo() {
     });
 
     setJogadores(atualizados);
+
+    // Detecta quem chegou exatamente numa casa de minigame nesta rodada
+    const eventos: EventoMinigame[] = [];
+    atualizados.forEach((j, i) => {
+      const antes = jogadores[i]!;
+      const casa = TABULEIRO[j.pos];
+      if (j.pos !== antes.pos && casa?.tipo === "minigame") {
+        const existente = eventos.find((ev) => ev.casa === casa.numero);
+        if (existente) existente.jogadores.push(j.nome);
+        else eventos.push({ casa: casa.numero, jogadores: [j.nome] });
+      }
+    });
+    setFilaMinigames(eventos);
+
     if (houveEscolhaBoa) {
       tocarSomRespostaBoa();
     }
@@ -550,7 +568,12 @@ function Jogo() {
   }
 
   // Avançar para a próxima rodada
-  function proximaRodada() {
+  function proximaRodada(ignorarMinigames = false) {
+    // Casas de minigame interrompem o fluxo antes da próxima pergunta
+    if (!ignorarMinigames && filaMinigames.length) {
+      setFase("minigame");
+      return;
+    }
     // Se alguém chegou ao fim (casa 22)
     if (jogadores.some((j) => j.pos >= TABULEIRO.length - 1 || j.terminou)) {
       setFase("fim");
@@ -559,12 +582,18 @@ function Jogo() {
 
     // Identifica a fase do mapa pela posição máxima dos jogadores
     const maxPos = Math.max(...jogadores.map((j) => j.pos));
-    const faseDificuldade: 1 | 2 | 3 = maxPos < 6 ? 1 : maxPos < 14 ? 2 : 3;
+    const faseDificuldade: 1 | 2 | 3 = maxPos < 10 ? 1 : maxPos < 20 ? 2 : 3;
 
     const prox = sortearPerguntaParaFase(faseDificuldade);
     setPerguntaAtual(prox);
     setRespostasRodada({});
     setFase("pergunta_simultanea");
+  }
+
+  function concluirMinigame() {
+    const resto = filaMinigames.slice(1);
+    setFilaMinigames(resto);
+    if (!resto.length) proximaRodada(true);
   }
 
   // Acionamento de emergência da Rede de Apoio
@@ -596,31 +625,7 @@ function Jogo() {
     setJogadores([]);
     setRespostasRodada({});
     setPerguntaAtual(null);
-  }
-
-  // Atalho para teste rápido da tela final
-  function testarTelaFinal() {
-    const mock = Array.from({ length: quantidade }, (_, i) => {
-      const base = novoJogador(
-        i,
-        nomes[i]?.trim() || `Jogador ${i + 1}`,
-        generos[i] || "neutro",
-        coresSelecionadas[i] || CORES_SELECAO[i]!,
-      );
-      return {
-        ...base,
-        pos: TABULEIRO.length - 1,
-        saude: 70 + (i === 0 ? 25 : -i * 10),
-        dinheiro: 60 + (i === 0 ? 30 : -i * 15),
-        familia: 70 + (i === 0 ? 20 : -i * 5),
-        consciencia: 65 + (i === 0 ? 25 : -i * 10),
-        terminou: true,
-        acertos: 5 - i,
-        erros: i,
-      };
-    });
-    setJogadores(mock);
-    setFase("fim");
+    setFilaMinigames([]);
   }
 
   // ==================== INTEGRAÇÃO COM MÚLTIPLOS CONTROLES ====================
@@ -642,6 +647,7 @@ function Jogo() {
       else if (fase === "tutorial") comecarPartida();
       else if (fase === "pergunta_simultanea" && todosResponderam) revelarRespostas();
       else if (fase === "revelacao") proximaRodada();
+      else if (fase === "minigame") concluirMinigame();
       else if (fase === "fim") reiniciar();
     },
     onMove: (direcao) => {
@@ -694,6 +700,8 @@ function Jogo() {
         }
       } else if (fase === "revelacao" && (e.key === "Enter" || e.key === " ")) {
         proximaRodada();
+      } else if (fase === "minigame" && e.key === "Enter") {
+        concluirMinigame();
       } else if (fase === "fim" && (e.key === "Enter" || e.key === " ")) {
         reiniciar();
       }
@@ -701,14 +709,14 @@ function Jogo() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fase, todosResponderam, modalApoio]);
+  }, [fase, todosResponderam, modalApoio, filaMinigames]);
 
   // Fase máxima atual dos jogadores no tabuleiro
   const faseMapaAtual = useMemo(() => {
     if (!jogadores.length) return 1;
     const max = Math.max(...jogadores.map((j) => j.pos));
-    if (max < 6) return 1;
-    if (max < 14) return 2;
+    if (max < 10) return 1;
+    if (max < 20) return 2;
     return 3;
   }, [jogadores]);
 
@@ -889,13 +897,6 @@ function Jogo() {
               Começar Partida
             </button>
 
-            <button
-              type="button"
-              onClick={testarTelaFinal}
-              className="text-xs text-muted-foreground hover:text-primary transition underline underline-offset-4"
-            >
-              🧪 Atalho de teste: Visualizar Tela Final com Confetes e Campeão
-            </button>
           </div>
         </div>
       </main>
@@ -1086,7 +1087,7 @@ function Jogo() {
             }`}
           >
             <span>Fase 1: Fácil</span>
-            <span className="text-[10px] opacity-80">(1-6)</span>
+            <span className="text-[10px] opacity-80">(1-10)</span>
           </div>
 
           <div
@@ -1097,7 +1098,7 @@ function Jogo() {
             }`}
           >
             <span>Fase 2: Médio</span>
-            <span className="text-[10px] opacity-80">(7-14)</span>
+            <span className="text-[10px] opacity-80">(11-20)</span>
           </div>
 
           <div
@@ -1108,7 +1109,7 @@ function Jogo() {
             }`}
           >
             <span>Fase 3: Difícil</span>
-            <span className="text-[10px] opacity-80">(15-22)</span>
+            <span className="text-[10px] opacity-80">(21-30)</span>
           </div>
         </div>
       </header>
@@ -1139,7 +1140,7 @@ function Jogo() {
                       </div>
                     </div>
                     <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-secondary text-foreground">
-                      Casa {j.pos + 1}/22
+                      Casa {j.pos + 1}/{TABULEIRO.length}
                     </span>
                   </div>
 
@@ -1358,7 +1359,7 @@ function Jogo() {
                           {acertou ? "Avança +2 Casas ✨" : "+0 Casas ⚠️"}
                         </span>
                         <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
-                          Posição: Casa {j.pos + 1}/22
+                          Posição: Casa {j.pos + 1}/{TABULEIRO.length}
                         </p>
                       </div>
                     </div>
@@ -1384,6 +1385,10 @@ function Jogo() {
       </div>
 
       {/* Modal de Alerta da Rede de Apoio */}
+      {fase === "minigame" && filaMinigames[0] && (
+        <MinigameModal evento={filaMinigames[0]} onConcluir={concluirMinigame} />
+      )}
+
       {modalApoio && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <div className="panel max-w-md w-full p-6 text-center border-2 border-emerald-500 shadow-2xl">
@@ -1413,17 +1418,17 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div>
           <h2 className="text-base md:text-lg font-bold text-foreground">Trilha das Escolhas Reais</h2>
-          <p className="text-xs text-muted-foreground">Avance pelas 22 casas através de decisões conscientes</p>
+          <p className="text-xs text-muted-foreground">Avance pelas {TABULEIRO.length} casas através de decisões conscientes</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
           <span>Partida: Casa 1</span>
           <span>➔</span>
-          <span className="text-primary font-bold">Futuro: Casa 22</span>
+          <span className="text-primary font-bold">Futuro: Casa {TABULEIRO.length}</span>
         </div>
       </div>
 
       {/* Grid de 22 Casas em Trilha Serpentine / Modular */}
-      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-11 gap-2">
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
         {TABULEIRO.map((casa, idx) => {
           const jogadoresAqui = jogadores.filter((j) => j.pos === idx);
           const corBordaFase =
@@ -1433,10 +1438,15 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
               ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500"
               : "border-purple-500/40 bg-purple-500/5 hover:border-purple-500";
 
+          const ehMinigame = casa.tipo === "minigame";
           return (
             <div
               key={casa.numero}
-              className={`relative flex min-h-[92px] flex-col justify-between rounded-xl border-2 p-2 transition-all ${corBordaFase} ${
+              className={`relative flex min-h-[92px] flex-col justify-between rounded-xl border-2 p-2 transition-all ${
+                ehMinigame
+                  ? "border-primary bg-primary/15 shadow-[0_0_18px_-4px_var(--primary)]"
+                  : corBordaFase
+              } ${
                 jogadoresAqui.length ? "ring-2 ring-primary shadow-md" : ""
               }`}
             >
@@ -1445,9 +1455,13 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
                 <span className="font-mono text-[10px] font-bold text-muted-foreground">
                   #{casa.numero}
                 </span>
-                <span className="text-muted-foreground/80">
-                  {renderIconeCasa(casa.icone, "size-3.5")}
-                </span>
+                {ehMinigame ? (
+                  <span className="text-sm leading-none" aria-label="Casa de minigame">🎮⭐</span>
+                ) : (
+                  <span className="text-muted-foreground/80">
+                    {renderIconeCasa(casa.icone, "size-3.5")}
+                  </span>
+                )}
               </div>
 
               {/* Rótulo da Casa */}
@@ -1627,7 +1641,7 @@ function TelaFinalCampeao({
                 <div>
                   <p className="font-bold text-sm text-foreground">{j.nome}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    Casa {j.pos + 1}/22 • {j.acertos} acertos
+                    Casa {j.pos + 1}/{TABULEIRO.length} • {j.acertos} acertos
                   </p>
                 </div>
               </div>
