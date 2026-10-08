@@ -1371,7 +1371,7 @@ function Jogo() {
               <div className="mt-5 border-t border-border pt-4">
                 <button
                   type="button"
-                  onClick={proximaRodada}
+                  onClick={() => proximaRodada()}
                   className="w-full rounded-xl bg-primary px-4 py-3.5 font-display text-lg tracking-wider text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] hover:opacity-95"
                 >
                   {jogadores.some((j) => j.pos >= TABULEIRO.length - 1)
