@@ -49,6 +49,7 @@ import {
 } from "@/lib/game-data";
 import { useGamepad } from "@/hooks/use-gamepad";
 import { MinigameModal, type EventoMinigame, type ResultadoMinigame } from "@/components/minigames/MinigameModal";
+import qrcodeAsset from "@/assets/qrcode-forms.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -1666,7 +1667,7 @@ function TelaFinalCampeao({
         {/* Card de feedback com QR Code */}
         <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 text-center sm:flex-row sm:text-left">
           <img
-            src="/qrcode-forms.png"
+            src={qrcodeAsset.url}
             alt="QR Code da pesquisa de feedback"
             width={200}
             height={200}
