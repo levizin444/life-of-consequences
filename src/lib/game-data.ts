@@ -36,7 +36,7 @@ export type Casa = {
 };
 
 // 30 CASAS EM 3 FASES: 1-10 introdutória, 11-20 pressão social, 21-30 alta consequência
-// Casas 15 e 25 são eventos de MINIGAME (ver src/components/minigames)
+// Casa 15 é o evento de MINIGAME (ver src/components/minigames)
 export const TABULEIRO: Casa[] = [
   { numero: 1, fase: 1, tipo: "inicio", rotulo: "Ponto de Partida", subtitulo: "Início da Jornada", icone: "Compass" },
   { numero: 2, fase: 1, tipo: "pergunta", rotulo: "Casa da Família", subtitulo: "Diálogo & Vínculos", icone: "Home" },
@@ -62,7 +62,7 @@ export const TABULEIRO: Casa[] = [
   { numero: 22, fase: 3, tipo: "pergunta", rotulo: "Ilusão do Lucro", subtitulo: "Perseguição de Perdas", icone: "TrendingDown" },
   { numero: 23, fase: 3, tipo: "pergunta", rotulo: "Dívida Oculta", subtitulo: "Segredos Custam Caro", icone: "AlertTriangle" },
   { numero: 24, fase: 3, tipo: "pergunta", rotulo: "Reconstrução", subtitulo: "Recuperar Vínculos", icone: "HeartHandshake" },
-  { numero: 25, fase: 3, tipo: "minigame", rotulo: "Desafio Especial", subtitulo: "Minigame", icone: "Star" },
+  { numero: 25, fase: 3, tipo: "pergunta", rotulo: "Ciclo de Promessas", subtitulo: "Só Mais Uma Vez", icone: "Shuffle" },
   { numero: 26, fase: 3, tipo: "pergunta", rotulo: "Grande Encruzilhada", subtitulo: "Decisão Decisiva", icone: "Shuffle" },
   { numero: 27, fase: 3, tipo: "pergunta", rotulo: "Recaída?", subtitulo: "Força de Vontade", icone: "ShieldAlert" },
   { numero: 28, fase: 3, tipo: "pergunta", rotulo: "Exemplo Positivo", subtitulo: "Apoio a Outros", icone: "Award" },
