@@ -48,7 +48,7 @@ import {
   type Pergunta,
 } from "@/lib/game-data";
 import { useGamepad } from "@/hooks/use-gamepad";
-import { MinigameModal, type EventoMinigame } from "@/components/minigames/MinigameModal";
+import { MinigameModal, type EventoMinigame, type ResultadoMinigame } from "@/components/minigames/MinigameModal";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -590,7 +590,17 @@ function Jogo() {
     setFase("pergunta_simultanea");
   }
 
-  function concluirMinigame() {
+  function concluirMinigame(resultados?: ResultadoMinigame[]) {
+    if (resultados?.length) {
+      // Cada acerto: +4 Consciência e +2 Saúde; cada erro: -3 Saúde
+      setJogadores((atual) =>
+        atual.map((j, i) => {
+          const r = resultados[i];
+          if (!r) return j;
+          return aplicar(j, { consciencia: r.c * 4, saude: r.c * 2 - r.w * 3 });
+        }),
+      );
+    }
     const resto = filaMinigames.slice(1);
     setFilaMinigames(resto);
     if (!resto.length) proximaRodada(true);
@@ -647,7 +657,6 @@ function Jogo() {
       else if (fase === "tutorial") comecarPartida();
       else if (fase === "pergunta_simultanea" && todosResponderam) revelarRespostas();
       else if (fase === "revelacao") proximaRodada();
-      else if (fase === "minigame") concluirMinigame();
       else if (fase === "fim") reiniciar();
     },
     onMove: (direcao) => {
@@ -700,8 +709,6 @@ function Jogo() {
         }
       } else if (fase === "revelacao" && (e.key === "Enter" || e.key === " ")) {
         proximaRodada();
-      } else if (fase === "minigame" && e.key === "Enter") {
-        concluirMinigame();
       } else if (fase === "fim" && (e.key === "Enter" || e.key === " ")) {
         reiniciar();
       }
@@ -1386,7 +1393,7 @@ function Jogo() {
 
       {/* Modal de Alerta da Rede de Apoio */}
       {fase === "minigame" && filaMinigames[0] && (
-        <MinigameModal evento={filaMinigames[0]} onConcluir={concluirMinigame} />
+        <MinigameModal evento={filaMinigames[0]} quantidade={jogadores.length} onConcluir={concluirMinigame} />
       )}
 
       {modalApoio && (
@@ -1654,6 +1661,23 @@ function TelaFinalCampeao({
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Card de feedback com QR Code */}
+        <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border-2 border-primary/40 bg-primary/5 p-5 text-center sm:flex-row sm:text-left">
+          <img
+            src="/qrcode-forms.png"
+            alt="QR Code da pesquisa de feedback"
+            width={200}
+            height={200}
+            className="size-[200px] shrink-0 rounded-lg bg-foreground p-2"
+          />
+          <div>
+            <p className="font-display text-2xl text-foreground">📱 Dê a sua opinião sobre o jogo!</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Escaneie o QR Code para responder à nossa pesquisa de feedback
+            </p>
+          </div>
         </div>
 
         <div className="mt-8 flex justify-center">
