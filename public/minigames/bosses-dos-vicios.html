@@ -702,9 +702,9 @@ function rd2(){S.round=2;mk();S.mode="play";ask()}
 document.body.addEventListener("click",function(e){var b=e.target.closest("[data-a]");if(!b||b.disabled)return;var a=b.dataset.a,v=+b.dataset.v;
 if(a=="s")start(v);else if(a=="a")ans(b,v);else if(a=="n")nxt();else if(a=="b")boss(v);else if(a=="r")rd2();else if(a=="h"||a=="pc"||a=="pi")home();else if(a=="how")how();else if(a=="help")help();else if(a=="mute")toggleMute();else if(a=="reload")reloadBtn();else if(a=="pause")togglePause();else if(a=="intro")introHide();else if(a=="pzres")resume();else if(a=="pzsnd"){toggleMute();pzRender("main")}else if(a=="pzhow")pzRender("how");else if(a=="pzback")pzRender("main");else if(a=="pznew"){resume();home()}if(a!="a"&&a!="mute"&&a!="reload")sfx("click");unlock()});
 jumpLoop();padScreen();draw();
-})();
-;(function(){var n=+(new URLSearchParams(location.search).get("n"))||4;n=Math.min(4,Math.max(2,n));
+(function(){var n=+(new URLSearchParams(location.search).get("n"))||4;n=Math.min(4,Math.max(2,n));
 setTimeout(function(){try{introHide()}catch(e){}try{start(n)}catch(e){console.error(e)}},400);
 var r0=result;result=function(w,m){r0(w,m);try{var b=pan.querySelector('[data-a="h"]');if(b)b.remove()}catch(e){}
 try{parent.postMessage({type:"bosses-result",win:!!w,st:S.st.map(function(s){return{c:s.c,w:s.w}})},"*")}catch(e){}}})()
+})();
 </script></body></html>
