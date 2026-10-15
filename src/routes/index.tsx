@@ -327,6 +327,7 @@ function renderIconeCasa(icone: string, className = "size-4") {
 function Jogo() {
   const [fase, setFase] = useState<Fase>("setup");
   const [filaMinigames, setFilaMinigames] = useState<EventoMinigame[]>([]);
+  const [vezesMinigame15, setVezesMinigame15] = useState(0);
   const [quantidade, setQuantidade] = useState(4);
   const [cardTutorial, setCardTutorial] = useState(0);
 
@@ -497,6 +498,7 @@ function Jogo() {
 
   function comecarPartida() {
     setPerguntasUsadas([]);
+    setVezesMinigame15(0);
     const primeira = sortearPerguntaParaFase(1);
     setPerguntaAtual(primeira);
     setRespostasRodada({});
@@ -549,17 +551,22 @@ function Jogo() {
 
     setJogadores(atualizados);
 
-    // Detecta quem chegou exatamente numa casa de minigame nesta rodada
+    // Detecta se algum jogador chegou à Casa 15 nesta rodada (máximo de 2 ativações no jogo)
     const eventos: EventoMinigame[] = [];
-    atualizados.forEach((j, i) => {
-      const antes = jogadores[i]!;
-      const casa = TABULEIRO[j.pos];
-      if (j.pos !== antes.pos && casa?.tipo === "minigame") {
-        const existente = eventos.find((ev) => ev.casa === casa.numero);
-        if (existente) existente.jogadores.push(j.nome);
-        else eventos.push({ casa: casa.numero, jogadores: [j.nome] });
+    if (vezesMinigame15 < 2) {
+      const quemChegouNa15 = atualizados.filter((j, i) => {
+        const antes = jogadores[i]!;
+        const casa = TABULEIRO[j.pos];
+        return j.pos !== antes.pos && casa?.numero === 15;
+      });
+
+      if (quemChegouNa15.length > 0) {
+        eventos.push({
+          casa: 15,
+          jogadores: quemChegouNa15.map((j) => j.nome),
+        });
       }
-    });
+    }
     setFilaMinigames(eventos);
 
     if (houveEscolhaBoa) {
@@ -602,6 +609,7 @@ function Jogo() {
         }),
       );
     }
+    setVezesMinigame15((v) => v + 1);
     const resto = filaMinigames.slice(1);
     setFilaMinigames(resto);
     if (!resto.length) proximaRodada(true);
@@ -636,7 +644,9 @@ function Jogo() {
     setJogadores([]);
     setRespostasRodada({});
     setPerguntaAtual(null);
+    setPerguntasUsadas([]);
     setFilaMinigames([]);
+    setVezesMinigame15(0);
   }
 
   // ==================== INTEGRAÇÃO COM MÚLTIPLOS CONTROLES ====================
@@ -1126,7 +1136,7 @@ function Jogo() {
       <div className="mx-auto mt-4 grid max-w-[1500px] items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.9fr)]">
         {/* LADO ESQUERDO: TABULEIRO MODERNO DE 22 CASAS */}
         <div className="flex flex-col gap-4">
-          <TabuleiroModerno jogadores={jogadores} />
+          <TabuleiroModerno jogadores={jogadores} vezesMinigame15={vezesMinigame15} />
 
           {/* Status dos Jogadores (Barras de Vida e Rede de Apoio) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -1368,6 +1378,13 @@ function Jogo() {
                         </span>
                         <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
                           Posição: Casa {j.pos + 1}/{TABULEIRO.length}
+                          {j.pos + 1 === 15 && (
+                            <span className="ml-1.5 font-sans font-bold text-primary">
+                              {vezesMinigame15 < 2
+                                ? `⭐ Minigame (${vezesMinigame15 + 1}/2)!`
+                                : "✓ Pergunta Comum"}
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1382,7 +1399,9 @@ function Jogo() {
                   onClick={() => proximaRodada()}
                   className="w-full rounded-xl bg-primary px-4 py-3.5 font-display text-lg tracking-wider text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] hover:opacity-95"
                 >
-                  {jogadores.some((j) => j.pos >= TABULEIRO.length - 1)
+                  {filaMinigames.length
+                    ? `🎮 Iniciar Minigame da Casa 15 (${vezesMinigame15 + 1}ª Ativação / 2) [ A / Continuar ]`
+                    : jogadores.some((j) => j.pos >= TABULEIRO.length - 1)
                     ? "🏆 Ver Grande Campeão [ A / Continuar ]"
                     : "Próxima Pergunta [ A / Continuar ]"}
                 </button>
@@ -1419,8 +1438,14 @@ function Jogo() {
   );
 }
 
-// ==================== COMPONENTE: TABULEIRO MODERNO (22 CASAS) ====================
-function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
+// ==================== COMPONENTE: TABULEIRO MODERNO (30 CASAS) ====================
+function TabuleiroModerno({
+  jogadores,
+  vezesMinigame15 = 0,
+}: {
+  jogadores: Jogador[];
+  vezesMinigame15?: number;
+}) {
   return (
     <section aria-label="Tabuleiro da Vida" className="panel p-4 md:p-5 border-2 border-border/80 shadow-lg">
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
@@ -1435,7 +1460,7 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
         </div>
       </div>
 
-      {/* Grid de 22 Casas em Trilha Serpentine / Modular */}
+      {/* Grid de 30 Casas em Trilha Serpentine / Modular */}
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
         {TABULEIRO.map((casa, idx) => {
           const jogadoresAqui = jogadores.filter((j) => j.pos === idx);
@@ -1446,7 +1471,17 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
               ? "border-orange-500/40 bg-orange-500/5 hover:border-orange-500"
               : "border-purple-500/40 bg-purple-500/5 hover:border-purple-500";
 
-          const ehMinigame = casa.tipo === "minigame";
+          // Casa 15 é minigame apenas nas primeiras 2 ativações; depois disso, torna-se casa de pergunta comum
+          const ehMinigame = casa.tipo === "minigame" && (casa.numero !== 15 || vezesMinigame15 < 2);
+          const rotuloCasa =
+            casa.numero === 15 && vezesMinigame15 >= 2 ? "Desafio Concluído" : casa.rotulo;
+          const subtituloCasa =
+            casa.numero === 15
+              ? vezesMinigame15 >= 2
+                ? "Pergunta Comum"
+                : `Minigame (${2 - vezesMinigame15} restante${2 - vezesMinigame15 > 1 ? "s" : ""})`
+              : casa.subtitulo;
+
           return (
             <div
               key={casa.numero}
@@ -1464,7 +1499,9 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
                   #{casa.numero}
                 </span>
                 {ehMinigame ? (
-                  <span className="text-sm leading-none" aria-label="Casa de minigame">🎮⭐</span>
+                  <span className="text-sm leading-none animate-pulse" aria-label="Casa de minigame">🎮⭐</span>
+                ) : casa.numero === 15 && vezesMinigame15 >= 2 ? (
+                  <span className="text-emerald-400 font-bold text-xs" title="Minigame concluído - Pergunta comum">✓</span>
                 ) : (
                   <span className="text-muted-foreground/80">
                     {renderIconeCasa(casa.icone, "size-3.5")}
@@ -1474,10 +1511,10 @@ function TabuleiroModerno({ jogadores }: { jogadores: Jogador[] }) {
 
               {/* Rótulo da Casa */}
               <div className="my-1">
-                <p className="font-bold text-[11px] leading-tight text-foreground truncate" title={casa.rotulo}>
-                  {casa.rotulo}
+                <p className="font-bold text-[11px] leading-tight text-foreground truncate" title={rotuloCasa}>
+                  {rotuloCasa}
                 </p>
-                <p className="text-[9px] text-muted-foreground truncate">{casa.subtitulo}</p>
+                <p className="text-[9px] text-muted-foreground truncate">{subtituloCasa}</p>
               </div>
 
               {/* Pinos dos Jogadores Presentes na Casa */}
