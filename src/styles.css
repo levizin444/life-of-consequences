@@ -38,12 +38,17 @@
   --color-p2: var(--p2);
   --color-p3: var(--p3);
   --color-p4: var(--p4);
+  --color-title: var(--title);
+  --color-brand: var(--brand);
+  --font-question: "Open Sans", system-ui, sans-serif;
   --font-display: "Bebas Neue", system-ui, sans-serif;
   --font-sans: "Barlow", system-ui, sans-serif;
   --shadow-glow: 0 18px 55px -38px oklch(0 0 0 / 0.95);
 }
 
 :root {
+  --title: #ffffff;
+  --brand: oklch(0.8 0.16 75);
   --radius: 0.5rem;
   --background: oklch(0.2 0.006 240);
   --foreground: oklch(0.96 0.005 90);
