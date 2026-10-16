@@ -49,18 +49,19 @@ import {
 } from "@/lib/game-data";
 import { useGamepad } from "@/hooks/use-gamepad";
 import { MinigameModal, type EventoMinigame, type ResultadoMinigame } from "@/components/minigames/MinigameModal";
+import { faseDaCasa, podeIniciarPartida, podeReiniciarFinal, proximoCardTutorial } from "@/lib/game-rules";
 import qrcodeAsset from "@/assets/qrcode-forms.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Jogo da Vida: Escolhas Reais — Multiplayer Simultâneo" },
+      { title: "O Jogo da Vida — Itinerário de Ciências" },
       {
         name: "description",
         content:
           "Jogo de tabuleiro digital multiplayer simultâneo para 2 a 4 jogadores sobre prevenção ao vício em drogas e em casas de aposta. Responda em conjunto pelo controle, avance e descubra seu final.",
       },
-      { property: "og:title", content: "Jogo da Vida: Escolhas Reais" },
+      { property: "og:title", content: "O JOGO DA VIDA" },
       {
         property: "og:description",
         content:
@@ -171,7 +172,7 @@ type Jogador = {
   nome: string;
   genero: Genero;
   cor: CorCustomizada;
-  pos: number; // 0 a 21 (Casas 1 a 22)
+  pos: number; // Índice da casa no tabuleiro
   saude: number;
   dinheiro: number;
   familia: number;
@@ -248,7 +249,7 @@ const CARDS_TUTORIAL = [
     tag: "O OBJETIVO DO JOGO",
     titulo: "O Caminho das Escolhas",
     texto:
-      "Você e seus amigos percorrem uma trilha de 30 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
+      "Você e seus amigos percorrem uma trilha de 20 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
     icone: Target,
     corTag: "text-primary bg-primary/10 border-primary/20",
     corIcone: "text-primary",
@@ -286,7 +287,7 @@ const CARDS_TUTORIAL = [
   {
     numero: 5,
     tag: "O GRANDE CAMPEÃO & FUTURO",
-    titulo: "Chegue à Casa 30!",
+    titulo: "Chegue à Casa 20!",
     texto:
       "A partida é vencida por quem cruzar o portal do Futuro e mantiver o maior equilíbrio de vida. No encerramento, o Grande Campeão é coroado com troféu dourado, fanfarra e chuva de confetes!",
     icone: Trophy,
@@ -497,12 +498,23 @@ function Jogo() {
   }
 
   function comecarPartida() {
+    if (fase !== "tutorial" || !podeIniciarPartida(cardTutorial, CARDS_TUTORIAL.length)) return;
     setPerguntasUsadas([]);
     setVezesMinigame15(0);
     const primeira = sortearPerguntaParaFase(1);
     setPerguntaAtual(primeira);
     setRespostasRodada({});
     setFase("pergunta_simultanea");
+  }
+
+  function avancarTutorial() {
+    setCardTutorial((c) => proximoCardTutorial(c, CARDS_TUTORIAL.length));
+    tocarSomNavegacao();
+  }
+
+  function confirmarTutorial() {
+    if (podeIniciarPartida(cardTutorial, CARDS_TUTORIAL.length)) comecarPartida();
+    else avancarTutorial();
   }
 
   // Registrar resposta de um jogador específico (0 a 3)
@@ -582,7 +594,7 @@ function Jogo() {
       setFase("minigame");
       return;
     }
-    // Se alguém chegou ao fim (casa 22)
+    // Se alguém chegou à última casa
     if (jogadores.some((j) => j.pos >= TABULEIRO.length - 1 || j.terminou)) {
       setFase("fim");
       return;
@@ -590,7 +602,7 @@ function Jogo() {
 
     // Identifica a fase do mapa pela posição máxima dos jogadores
     const maxPos = Math.max(...jogadores.map((j) => j.pos));
-    const faseDificuldade: 1 | 2 | 3 = maxPos < 10 ? 1 : maxPos < 20 ? 2 : 3;
+    const faseDificuldade = faseDaCasa(maxPos + 1);
 
     const prox = sortearPerguntaParaFase(faseDificuldade);
     setPerguntaAtual(prox);
@@ -665,10 +677,9 @@ function Jogo() {
         return;
       }
       if (fase === "setup") iniciar();
-      else if (fase === "tutorial") comecarPartida();
+      else if (fase === "tutorial") confirmarTutorial();
       else if (fase === "pergunta_simultanea" && todosResponderam) revelarRespostas();
       else if (fase === "revelacao") proximaRodada();
-      else if (fase === "fim") reiniciar();
     },
     onMove: (direcao) => {
       if (fase === "tutorial") {
@@ -676,16 +687,23 @@ function Jogo() {
           setCardTutorial((c) => Math.max(0, c - 1));
           tocarSomNavegacao();
         } else if (direcao === "direita" || direcao === "baixo") {
-          setCardTutorial((c) => Math.min(CARDS_TUTORIAL.length - 1, c + 1));
-          tocarSomNavegacao();
+          avancarTutorial();
         }
       }
     },
   });
 
-  // Atalhos de teclado para teste rápido e acessibilidade
+  // Atalhos de teclado e reinício protegido
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (fase === "fim") {
+        if (podeReiniciarFinal("teclado", e.key)) {
+          e.preventDefault();
+          reiniciar();
+        }
+        return;
+      }
+      if (e.repeat && fase === "tutorial") return;
       if (modalApoio && (e.key === "Enter" || e.key === "Escape")) {
         setModalApoio(null);
         return;
@@ -698,10 +716,10 @@ function Jogo() {
           setCardTutorial((c) => Math.max(0, c - 1));
           tocarSomNavegacao();
         } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-          setCardTutorial((c) => Math.min(CARDS_TUTORIAL.length - 1, c + 1));
-          tocarSomNavegacao();
+          avancarTutorial();
         } else if (e.key === "Enter" || e.key === " ") {
-          comecarPartida();
+          e.preventDefault();
+          confirmarTutorial();
         }
       } else if (fase === "pergunta_simultanea") {
         // P1: Teclas 1, 2, 3, 4
@@ -720,22 +738,19 @@ function Jogo() {
         }
       } else if (fase === "revelacao" && (e.key === "Enter" || e.key === " ")) {
         proximaRodada();
-      } else if (fase === "fim" && (e.key === "Enter" || e.key === " ")) {
-        reiniciar();
+
       }
     };
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fase, todosResponderam, modalApoio, filaMinigames]);
+  }, [fase, cardTutorial, todosResponderam, modalApoio, filaMinigames]);
 
   // Fase máxima atual dos jogadores no tabuleiro
   const faseMapaAtual = useMemo(() => {
     if (!jogadores.length) return 1;
     const max = Math.max(...jogadores.map((j) => j.pos));
-    if (max < 10) return 1;
-    if (max < 20) return 2;
-    return 3;
+    return faseDaCasa(max + 1);
   }, [jogadores]);
 
   // ==================== TELA 1: SETUP & CUSTOMIZAÇÃO ====================
@@ -753,12 +768,12 @@ function Jogo() {
         />
 
         <div className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1 text-xs font-semibold text-primary">
             <Gamepad2 className="size-3.5" />
-            <span>Multiplayer Simultâneo • Feira de Ciências</span>
+            <span>Itinerário de ciências - prof: Leandro Barbosa</span>
           </div>
-          <h1 className="mt-3 font-display text-4xl md:text-5xl text-foreground">
-            Jogo da Vida: <span className="text-primary">Escolhas Reais</span>
+          <h1 className="mt-3 font-display text-4xl md:text-5xl text-title">
+            O JOGO DA VIDA
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-xl mx-auto">
             Customizem seus personagens, peguem seus controles e joguem todos ao mesmo tempo! Suas escolhas determinam o avanço no tabuleiro e o seu futuro.
@@ -917,6 +932,10 @@ function Jogo() {
 
           </div>
         </div>
+        <div className="mt-6 flex items-center gap-2 font-display text-lg text-brand">
+          <Gamepad2 className="size-5" />
+          <span>O JOGO DA VIDA</span>
+        </div>
       </main>
     );
   }
@@ -954,13 +973,10 @@ function Jogo() {
         {/* Stepper */}
         <div className="mt-6 flex items-center justify-center gap-2">
           {CARDS_TUTORIAL.map((c, i) => (
-            <button
+            <span
               key={c.numero}
-              type="button"
-              onClick={() => {
-                setCardTutorial(i);
-                tocarSomNavegacao();
-              }}
+              aria-label={`Card ${i + 1}`}
+              aria-current={i === cardTutorial ? "step" : undefined}
               className={`h-2 rounded-full transition-all duration-300 ${
                 i === cardTutorial ? "w-8 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/60"
               }`}
@@ -1011,42 +1027,29 @@ function Jogo() {
               Navegue com [ ◀ ▶ ] ou analógico
             </span>
 
-            <button
+            {cardTutorial < CARDS_TUTORIAL.length - 1 && <button
               type="button"
-              onClick={() => {
-                if (cardTutorial === CARDS_TUTORIAL.length - 1) {
-                  comecarPartida();
-                } else {
-                  setCardTutorial((c) => c + 1);
-                  tocarSomNavegacao();
-                }
-              }}
+              onClick={avancarTutorial}
               className="flex items-center gap-1.5 rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground"
             >
-              <span>{cardTutorial === CARDS_TUTORIAL.length - 1 ? "Entendido!" : "Próximo"}</span>
+              <span>Próximo</span>
               <ChevronRight className="size-4" />
-            </button>
+            </button>}
           </div>
         </div>
 
-        {/* Rodapé */}
-        <div className="mt-6 flex flex-col items-center gap-2.5">
-          <button
-            type="button"
-            onClick={comecarPartida}
-            className="group flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 font-display text-xl text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:opacity-95"
-          >
-            <Gamepad2 className="size-6 transition group-hover:scale-110" />
-            <span>Pressionar [ A / X ] para Iniciar Partida</span>
-          </button>
-          <button
-            type="button"
-            onClick={comecarPartida}
-            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground transition"
-          >
-            Pular tutorial e começar direto
-          </button>
-        </div>
+        {podeIniciarPartida(cardTutorial, CARDS_TUTORIAL.length) && (
+          <div className="mt-6 flex flex-col items-center gap-2.5">
+            <button
+              type="button"
+              onClick={comecarPartida}
+              className="group flex w-full max-w-md items-center justify-center gap-3 rounded-xl bg-primary px-6 py-4 font-display text-xl text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] hover:opacity-95"
+            >
+              <Gamepad2 className="size-6" />
+              <span>Iniciar Partida [ A ]</span>
+            </button>
+          </div>
+        )}
       </main>
     );
   }
@@ -1085,11 +1088,11 @@ function Jogo() {
       <header className="mx-auto flex max-w-[1500px] flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
-            <ShieldCheck className="size-5" />
+            <Gamepad2 className="size-5" />
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
-              Jogo da Vida: Escolhas Reais
+              O JOGO DA VIDA
             </p>
             <h1 className="text-xl md:text-2xl font-bold text-foreground">Multiplayer Simultâneo</h1>
           </div>
@@ -1105,7 +1108,7 @@ function Jogo() {
             }`}
           >
             <span>Fase 1: Fácil</span>
-            <span className="text-[10px] opacity-80">(1-10)</span>
+            <span className="text-[10px] opacity-80">(1-7)</span>
           </div>
 
           <div
@@ -1116,7 +1119,7 @@ function Jogo() {
             }`}
           >
             <span>Fase 2: Médio</span>
-            <span className="text-[10px] opacity-80">(11-20)</span>
+            <span className="text-[10px] opacity-80">(8-14)</span>
           </div>
 
           <div
@@ -1127,14 +1130,14 @@ function Jogo() {
             }`}
           >
             <span>Fase 3: Difícil</span>
-            <span className="text-[10px] opacity-80">(21-30)</span>
+            <span className="text-[10px] opacity-80">(15-20)</span>
           </div>
         </div>
       </header>
 
       {/* Grid Principal: Tabuleiro Refinado + Painel de Pergunta Simultânea */}
       <div className="mx-auto mt-4 grid max-w-[1500px] items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.9fr)]">
-        {/* LADO ESQUERDO: TABULEIRO MODERNO DE 22 CASAS */}
+        {/* LADO ESQUERDO: TABULEIRO MODERNO DE 20 CASAS */}
         <div className="flex flex-col gap-4">
           <TabuleiroModerno jogadores={jogadores} vezesMinigame15={vezesMinigame15} />
 
@@ -1203,7 +1206,7 @@ function Jogo() {
               </div>
 
               {/* Enunciado */}
-              <h2 className="mt-4 text-lg md:text-xl font-bold leading-snug text-foreground">
+              <h2 className="mt-4 font-question normal-case tracking-normal text-lg md:text-xl font-semibold leading-relaxed text-foreground">
                 {perguntaAtual.enunciado}
               </h2>
 
@@ -1242,7 +1245,7 @@ function Jogo() {
               {/* 4 Alternativas de Resposta */}
               <div className="mt-5 space-y-2.5 flex-1">
                 {perguntaAtual.opcoes.map((op, idx) => {
-                  const botoesGuia = ["[ A / ✕ ]", "[ B / ◯ ]", "[ X / ▢ ]", "[ Y / △ ]"];
+                  const botoesGuia = ["[ A ]", "[ B ]", "[ X ]", "[ Y ]"];
                   return (
                     <div
                       key={op.letra}
@@ -1315,7 +1318,7 @@ function Jogo() {
                 <span>Revelação Geral das Respostas</span>
               </div>
 
-              <h2 className="mt-3 text-base md:text-lg font-bold text-foreground">
+              <h2 className="mt-3 font-question normal-case tracking-normal text-base md:text-lg font-semibold leading-relaxed text-foreground">
                 {perguntaAtual.enunciado}
               </h2>
 
@@ -1438,7 +1441,7 @@ function Jogo() {
   );
 }
 
-// ==================== COMPONENTE: TABULEIRO MODERNO (30 CASAS) ====================
+// ==================== COMPONENTE: TABULEIRO MODERNO (20 CASAS) ====================
 function TabuleiroModerno({
   jogadores,
   vezesMinigame15 = 0,
@@ -1460,7 +1463,7 @@ function TabuleiroModerno({
         </div>
       </div>
 
-      {/* Grid de 30 Casas em Trilha Serpentine / Modular */}
+      {/* Grid de 20 Casas em Trilha Serpentine / Modular */}
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
         {TABULEIRO.map((casa, idx) => {
           const jogadoresAqui = jogadores.filter((j) => j.pos === idx);
@@ -1721,7 +1724,10 @@ function TelaFinalCampeao({
         <div className="mt-8 flex justify-center">
           <button
             type="button"
-            onClick={reiniciar}
+            onClick={(e) => {
+              // Keyboard-generated clicks have detail 0; pointerType excludes touch/pen.
+              if (e.detail > 0 && e.nativeEvent instanceof PointerEvent && podeReiniciarFinal(e.nativeEvent.pointerType)) reiniciar();
+            }}
             className="flex items-center gap-2 rounded-xl bg-primary px-8 py-3.5 font-display text-lg text-primary-foreground shadow-lg shadow-primary/25 transition hover:scale-105 active:scale-95"
           >
             <RefreshCw className="size-5" />

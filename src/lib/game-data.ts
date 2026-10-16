@@ -36,8 +36,7 @@ export type Casa = {
   icone: string;
 };
 
-// 30 CASAS EM 3 FASES: 1-10 introdutória, 11-20 pressão social, 21-30 alta consequência
-// Casa 15 é o evento exclusivo de MINIGAME (máximo de 2 execuções por partida)
+// 20 CASAS: fases 1–7, 8–14 e 15–20. Minigame exclusivo na casa 15.
 export const TABULEIRO: Casa[] = [
   { numero: 1, fase: 1, tipo: "inicio", rotulo: "Ponto de Partida", subtitulo: "Início da Jornada", icone: "Compass" },
   { numero: 2, fase: 1, tipo: "pergunta", rotulo: "Casa da Família", subtitulo: "Diálogo & Vínculos", icone: "Home" },
@@ -46,33 +45,23 @@ export const TABULEIRO: Casa[] = [
   { numero: 5, fase: 1, tipo: "pergunta", rotulo: "Roda de Amigos", subtitulo: "Convivência Diária", icone: "Users" },
   { numero: 6, fase: 1, tipo: "pergunta", rotulo: "Primeiro Convite", subtitulo: "Saber Dizer Não", icone: "Sparkles" },
   { numero: 7, fase: 1, tipo: "pergunta", rotulo: "Mesada Consciente", subtitulo: "Planejar Gastos", icone: "CircleDollarSign" },
-  { numero: 8, fase: 1, tipo: "pergunta", rotulo: "Redes Sociais", subtitulo: "Influência Digital", icone: "Smartphone" },
-  { numero: 9, fase: 1, tipo: "pergunta", rotulo: "Hobby Saudável", subtitulo: "Tempo Livre", icone: "Award" },
-  { numero: 10, fase: 1, tipo: "pergunta", rotulo: "Checkpoint 1", subtitulo: "Primeiras Escolhas", icone: "ShieldCheck" },
+  { numero: 8, fase: 2, tipo: "pergunta", rotulo: "Redes Sociais", subtitulo: "Influência Digital", icone: "Smartphone" },
+  { numero: 9, fase: 2, tipo: "pergunta", rotulo: "Hobby Saudável", subtitulo: "Tempo Livre", icone: "Award" },
+  { numero: 10, fase: 2, tipo: "pergunta", rotulo: "Checkpoint 1", subtitulo: "Primeiras Escolhas", icone: "ShieldCheck" },
   { numero: 11, fase: 2, tipo: "pergunta", rotulo: "Festa de Sexta", subtitulo: "Pressão de Grupo", icone: "Sparkles" },
   { numero: 12, fase: 2, tipo: "pergunta", rotulo: "Feed do Celular", subtitulo: "Anúncios de Apostas", icone: "Smartphone" },
   { numero: 13, fase: 2, tipo: "pergunta", rotulo: "Jogos Online", subtitulo: "Armadilhas de Bets", icone: "Gamepad2" },
   { numero: 14, fase: 2, tipo: "pergunta", rotulo: "Balcão de Tentação", subtitulo: "Ofertas Fáceis", icone: "AlertTriangle" },
-  { numero: 15, fase: 2, tipo: "minigame", rotulo: "Desafio Especial", subtitulo: "Minigame", icone: "Star" },
-  { numero: 16, fase: 2, tipo: "pergunta", rotulo: "Primeiro Salário", subtitulo: "Gestão do Dinheiro", icone: "CircleDollarSign" },
-  { numero: 17, fase: 2, tipo: "pergunta", rotulo: "Grupo de Mensagens", subtitulo: "Links Suspeitos", icone: "MessageSquare" },
-  { numero: 18, fase: 2, tipo: "pergunta", rotulo: "Fim de Noite", subtitulo: "Limites Pessoais", icone: "Moon" },
-  { numero: 19, fase: 2, tipo: "apoio", rotulo: "Rede de Apoio", subtitulo: "UBS & CAPS-AD", icone: "LifeBuoy" },
-  { numero: 20, fase: 2, tipo: "pergunta", rotulo: "Checkpoint 2", subtitulo: "Maturidade & Alerta", icone: "ShieldAlert" },
-  { numero: 21, fase: 3, tipo: "pergunta", rotulo: "Momento Crítico", subtitulo: "Sinais de Dependência", icone: "HeartPulse" },
-  { numero: 22, fase: 3, tipo: "pergunta", rotulo: "Ilusão do Lucro", subtitulo: "Perseguição de Perdas", icone: "TrendingDown" },
-  { numero: 23, fase: 3, tipo: "pergunta", rotulo: "Dívida Oculta", subtitulo: "Segredos Custam Caro", icone: "AlertTriangle" },
-  { numero: 24, fase: 3, tipo: "pergunta", rotulo: "Reconstrução", subtitulo: "Recuperar Vínculos", icone: "HeartHandshake" },
-  { numero: 25, fase: 3, tipo: "pergunta", rotulo: "Ciclo de Promessas", subtitulo: "Só Mais Uma Vez", icone: "Shuffle" },
-  { numero: 26, fase: 3, tipo: "pergunta", rotulo: "Grande Encruzilhada", subtitulo: "Decisão Decisiva", icone: "Shuffle" },
-  { numero: 27, fase: 3, tipo: "pergunta", rotulo: "Recaída?", subtitulo: "Força de Vontade", icone: "ShieldAlert" },
-  { numero: 28, fase: 3, tipo: "pergunta", rotulo: "Exemplo Positivo", subtitulo: "Apoio a Outros", icone: "Award" },
-  { numero: 29, fase: 3, tipo: "pergunta", rotulo: "Portão da Consciência", subtitulo: "Reta Final", icone: "Key" },
-  { numero: 30, fase: 3, tipo: "final", rotulo: "O Futuro Chegou!", subtitulo: "Vitória das Escolhas", icone: "Trophy" },
+  { numero: 15, fase: 3, tipo: "minigame", rotulo: "Desafio Especial", subtitulo: "Minigame", icone: "Star" },
+  { numero: 16, fase: 3, tipo: "pergunta", rotulo: "Primeiro Salário", subtitulo: "Gestão do Dinheiro", icone: "CircleDollarSign" },
+  { numero: 17, fase: 3, tipo: "pergunta", rotulo: "Grupo de Mensagens", subtitulo: "Links Suspeitos", icone: "MessageSquare" },
+  { numero: 18, fase: 3, tipo: "pergunta", rotulo: "Fim de Noite", subtitulo: "Limites Pessoais", icone: "Moon" },
+  { numero: 19, fase: 3, tipo: "apoio", rotulo: "Rede de Apoio", subtitulo: "UBS & CAPS-AD", icone: "LifeBuoy" },
+  { numero: 20, fase: 3, tipo: "final", rotulo: "O Futuro Chegou!", subtitulo: "Vitória das Escolhas", icone: "Trophy" },
 ];
 
 export const PERGUNTAS: Pergunta[] = [
-  // ==================== FASE 1: FÁCIL (Casas 1 a 10) ====================
+  // ==================== FASE 1: FÁCIL (Casas 1 a 7) ====================
   {
     id: 1,
     fase: 1,
@@ -518,7 +507,7 @@ export const PERGUNTAS: Pergunta[] = [
     ],
   },
 
-  // ==================== FASE 2: MÉDIO (Casas 11 a 20) ====================
+  // ==================== FASE 2: MÉDIO (Casas 8 a 14) ====================
   {
     id: 13,
     fase: 2,
@@ -964,7 +953,7 @@ export const PERGUNTAS: Pergunta[] = [
     ],
   },
 
-  // ==================== FASE 3: DIFÍCIL (Casas 21 a 30) ====================
+  // ==================== FASE 3: DIFÍCIL (Casas 15 a 20) ====================
   {
     id: 25,
     fase: 3,
