@@ -5,8 +5,6 @@ export type Direcao = "cima" | "baixo" | "esquerda" | "direita";
 export type UseGamepadOptions = {
   // Chamado quando um jogador seleciona uma alternativa (0 = A, 1 = B, 2 = C / X, 3 = D / Y)
   onPlayerAnswer?: (jogadorId: number, opcao: 0 | 1 | 2 | 3) => void;
-  // Chamado quando um jogador aciona a Rede de Apoio (botão Y/△ ou LB/RB)
-  onPlayerAjuda?: (jogadorId: number) => void;
   // Chamado quando algum jogador pressiona o botão de confirmação geral (A ou Start)
   onConfirm?: (jogadorId?: number) => void;
   // Chamado para movimentação nos menus / cards
@@ -28,7 +26,6 @@ type EstadoPad = {
   btnXAnterior: boolean;
   btnYAnterior: boolean;
   btnStartAnterior: boolean;
-  btnBumperAnterior: boolean;
   direcaoAnterior: Direcao | null;
   ultimoMovimento: number;
 };
@@ -48,10 +45,10 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
 
     let frame = 0;
     const estadosPads: EstadoPad[] = [
-      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
-      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, btnBumperAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
+      { btnAAnterior: false, btnBAnterior: false, btnXAnterior: false, btnYAnterior: false, btnStartAnterior: false, direcaoAnterior: null, ultimoMovimento: 0 },
     ];
 
     const atualizaConexoes = () => {
@@ -77,14 +74,14 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
 
       for (let i = 0; i < 4; i++) {
         const pad = rawPads[i];
-        const estado = estadosPads[i]!;
+        const estado = estadosPads[i];
+        if (!estado) continue;
         if (!pad || !pad.connected) {
           estado.btnAAnterior = false;
           estado.btnBAnterior = false;
           estado.btnXAnterior = false;
           estado.btnYAnterior = false;
           estado.btnStartAnterior = false;
-          estado.btnBumperAnterior = false;
           estado.direcaoAnterior = null;
           continue;
         }
@@ -94,7 +91,6 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
         const btnX = Boolean(pad.buttons[2]?.pressed); // X (Xbox) / ◽ (PS)
         const btnY = Boolean(pad.buttons[3]?.pressed); // Y (Xbox) / △ (PS)
         const btnStart = Boolean(pad.buttons[9]?.pressed || pad.buttons[8]?.pressed); // Start / Select
-        const btnBumper = Boolean(pad.buttons[4]?.pressed || pad.buttons[5]?.pressed); // LB / RB
 
         // RESPOSTAS MULTIPLAYER SIMULTÂNEAS:
         // Cada controle (i) envia sua escolha individual independente dos outros!
@@ -110,10 +106,6 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
         }
         if (btnY && !estado.btnYAnterior) {
           acoes.current.onPlayerAnswer?.(i, 3); // Opção D / Y
-          acoes.current.onPlayerAjuda?.(i);
-        }
-        if (btnBumper && !estado.btnBumperAnterior) {
-          acoes.current.onPlayerAjuda?.(i);
         }
         if (btnStart && !estado.btnStartAnterior) {
           acoes.current.onConfirm?.(i);
@@ -146,7 +138,6 @@ export function useGamepad(opcoes: UseGamepadOptions): UseGamepadReturn {
         estado.btnXAnterior = btnX;
         estado.btnYAnterior = btnY;
         estado.btnStartAnterior = btnStart;
-        estado.btnBumperAnterior = btnBumper;
         estado.direcaoAnterior = direcao;
       }
 

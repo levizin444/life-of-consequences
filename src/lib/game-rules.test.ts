@@ -1,8 +1,13 @@
+/// <reference types="bun" />
 import { describe, expect, test } from "bun:test";
 import { TABULEIRO } from "./game-data";
 import { faseDaCasa, podeIniciarPartida, podeReiniciarFinal, proximoCardTutorial } from "./game-rules";
 
 describe("regras finais", () => {
+  test("casa 19 é uma pergunta normal e nenhuma casa oferece o recurso de apoio", () => {
+    expect(TABULEIRO[18]?.tipo).toBe("pergunta");
+    expect(TABULEIRO.filter((c) => String(c.tipo) === "apoio")).toHaveLength(0);
+  });
   test("tabuleiro contém exatamente as casas 1 a 20 e termina na 20", () => {
     expect(TABULEIRO.map((c) => c.numero)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
     expect(TABULEIRO[19]?.tipo).toBe("final");
