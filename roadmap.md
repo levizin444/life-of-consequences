@@ -4,5 +4,5 @@
 - [x] Reduce board to 20 spaces with phases 1–7, 8–14, 15–20.
 - [x] Restrict final-screen restart to mouse click or F10.
 - [x] Leave final playtesting to the user as requested.
-- [ ] Remove the Rede de Apoio feature, including critical-state buttons and controller shortcuts.
-- [ ] Replace tutorial with the five supplied cards.
+- [x] Remove the Rede de Apoio feature, including critical-state buttons and controller shortcuts.
+- [x] Replace tutorial with the five supplied cards.
