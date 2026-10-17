@@ -25,7 +25,7 @@ export type Pergunta = {
   opcoes: Opcao[];
 };
 
-export type TipoCasa = "inicio" | "pergunta" | "apoio" | "minigame" | "final";
+export type TipoCasa = "inicio" | "pergunta" | "minigame" | "final";
 
 export type Casa = {
   numero: number;
@@ -56,7 +56,7 @@ export const TABULEIRO: Casa[] = [
   { numero: 16, fase: 3, tipo: "pergunta", rotulo: "Primeiro Salário", subtitulo: "Gestão do Dinheiro", icone: "CircleDollarSign" },
   { numero: 17, fase: 3, tipo: "pergunta", rotulo: "Grupo de Mensagens", subtitulo: "Links Suspeitos", icone: "MessageSquare" },
   { numero: 18, fase: 3, tipo: "pergunta", rotulo: "Fim de Noite", subtitulo: "Limites Pessoais", icone: "Moon" },
-  { numero: 19, fase: 3, tipo: "apoio", rotulo: "Rede de Apoio", subtitulo: "UBS & CAPS-AD", icone: "LifeBuoy" },
+  { numero: 19, fase: 3, tipo: "pergunta", rotulo: "Escolhas do Futuro", subtitulo: "Consequências Finais", icone: "Target" },
   { numero: 20, fase: 3, tipo: "final", rotulo: "O Futuro Chegou!", subtitulo: "Vitória das Escolhas", icone: "Trophy" },
 ];
 

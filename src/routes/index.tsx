@@ -17,7 +17,6 @@ import {
   HeartHandshake,
   HeartPulse,
   Home,
-  LifeBuoy,
   MessageSquare,
   Moon,
   Play,
@@ -178,8 +177,6 @@ type Jogador = {
   familia: number;
   consciencia: number;
   terminou: boolean;
-  usouApoio: boolean;
-  esteveCritico: boolean;
   acertos: number;
   erros: number;
 };
@@ -187,12 +184,7 @@ type Jogador = {
 type Fase = "setup" | "tutorial" | "pergunta_simultanea" | "revelacao" | "minigame" | "fim";
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
-const CRITICO = 25;
 const ALERTA = 30;
-
-function emCritico(j: Jogador) {
-  return Math.min(j.saude, j.dinheiro, j.familia, j.consciencia) < CRITICO;
-}
 
 function aplicar(j: Jogador, e: Efeito): Jogador {
   const novo: Jogador = {
@@ -202,7 +194,7 @@ function aplicar(j: Jogador, e: Efeito): Jogador {
     familia: clamp(j.familia + (e.familia ?? 0)),
     consciencia: clamp(j.consciencia + (e.consciencia ?? 0)),
   };
-  return { ...novo, esteveCritico: novo.esteveCritico || emCritico(novo) };
+  return novo;
 }
 
 function novoJogador(
@@ -222,8 +214,6 @@ function novoJogador(
     familia: 70,
     consciencia: 50,
     terminou: false,
-    usouApoio: false,
-    esteveCritico: false,
     acertos: 0,
     erros: 0,
   };
@@ -246,50 +236,50 @@ function obterAtributoMaisForte(j: Jogador) {
 const CARDS_TUTORIAL = [
   {
     numero: 1,
-    tag: "O OBJETIVO DO JOGO",
-    titulo: "O Caminho das Escolhas",
+    tag: "APRESENTAÇÃO",
+    titulo: "O Jogo da Vida",
     texto:
-      "Você e seus amigos percorrem uma trilha de 20 casas dividida em 3 fases de maturidade. A cada rodada, perguntas reais sobre apostas, drogas e dilemas do dia a dia testarão sua postura. Suas decisões constroem seu destino!",
+      "Bem-vindo ao O Jogo da Vida! Enfrente dilemas do cotidiano, tome decisões conscientes e veja as consequências das suas escolhas ao longo de 20 casas.",
     icone: Target,
     corTag: "text-primary bg-primary/10 border-primary/20",
     corIcone: "text-primary",
   },
   {
     numero: 2,
-    tag: "OS 4 PILARES DA VIDA",
-    titulo: "Mantenha o Equilíbrio",
+    tag: "CONTROLES",
+    titulo: "Como Jogar",
     texto:
-      "Suas respostas afetam 4 pilares: Saúde, Dinheiro, Família e Consciência. Se algum deles cair para menos de 30%, entrará em ALERTA VERMELHO. Se cair abaixo de 25%, você pode acionar a Rede de Apoio para se reerguer!",
-    icone: BarChart3,
+      "Como Jogar: Cada jogador utiliza um controle. Para responder às perguntas, pressione a alternativa correspondente no seu controle: [ A ], [ B ], [ X ] ou [ Y ].",
+    icone: Gamepad2,
     corTag: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
     corIcone: "text-yellow-400",
   },
   {
     numero: 3,
-    tag: "RESPOSTAS SIMULTÂNEAS MULTIPLAYER",
-    titulo: "Todos Jogam ao Mesmo Tempo!",
+    tag: "PERGUNTAS SIMULTÂNEAS",
+    titulo: "Modo Multiplayer",
     texto:
-      "Uma mesma pergunta surge na tela para todos. Cada participante usa seu próprio controle (Comando 0 = P1, Comando 1 = P2, etc.) para escolher secretamente sua alternativa: [ A ], [ B ], [ X ] ou [ Y ]. Quando todos confirmarem, as respostas são reveladas!",
+      "Modo Multiplayer: Todos os jogadores respondem às perguntas ao mesmo tempo! Suas escolhas afetam seus pontos e sua caminhada pelo tabuleiro.",
     icone: Gamepad2,
     corTag: "text-blue-400 bg-blue-400/10 border-blue-400/20",
     corIcone: "text-blue-400",
   },
   {
     numero: 4,
-    tag: "SEM DADOS • PROGRESSÃO POR DIFICULDADE",
-    titulo: "Avanço por Consciência",
+    tag: "CASA ESPECIAL DE MINIGAME",
+    titulo: "Desafio na Casa 15",
     texto:
-      "Não há sorte de dados! Quem faz a escolha consciente avança +2 casas e ganha pontos; quem faz a escolha de risco não avança (+0 casas) e perde atributos. O jogo evolui pela Fase 1 (Fácil), Fase 2 (Médio) até a Fase 3 (Difícil).",
-    icone: Compass,
+      "Desafio na Casa 15: Ao alcançar a Casa 15, um minigame em grupo é ativado e todos jogam juntos para somar pontos!",
+    icone: Star,
     corTag: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
     corIcone: "text-emerald-400",
   },
   {
     numero: 5,
-    tag: "O GRANDE CAMPEÃO & FUTURO",
-    titulo: "Chegue à Casa 20!",
+    tag: "PRONTO PARA COMEÇAR",
+    titulo: "Boa sorte!",
     texto:
-      "A partida é vencida por quem cruzar o portal do Futuro e mantiver o maior equilíbrio de vida. No encerramento, o Grande Campeão é coroado com troféu dourado, fanfarra e chuva de confetes!",
+      "Pense bem antes de agir, mantenha seus status equilibrados e dispute quem chega primeiro. Boa sorte!",
     icone: Trophy,
     corTag: "text-yellow-400 bg-yellow-400/10 border-yellow-400/20",
     corIcone: "text-yellow-400",
@@ -315,7 +305,6 @@ function renderIconeCasa(icone: string, className = "size-4") {
     case "ShieldAlert": return <ShieldAlert className={className} />;
     case "HeartPulse": return <HeartPulse className={className} />;
     case "TrendingDown": return <TrendingDown className={className} />;
-    case "LifeBuoy": return <LifeBuoy className={className} />;
     case "HeartHandshake": return <HeartHandshake className={className} />;
     case "Shuffle": return <Shuffle className={className} />;
     case "Award": return <Award className={className} />;
@@ -346,7 +335,6 @@ function Jogo() {
   const [perguntaAtual, setPerguntaAtual] = useState<Pergunta | null>(null);
   const [perguntasUsadas, setPerguntasUsadas] = useState<number[]>([]);
   const [respostasRodada, setRespostasRodada] = useState<Record<number, number>>({});
-  const [modalApoio, setModalApoio] = useState<string | null>(null);
 
   // Áudio e volume
   const [volume, setVolume] = useState(0.8);
@@ -627,28 +615,6 @@ function Jogo() {
     if (!resto.length) proximaRodada(true);
   }
 
-  // Acionamento de emergência da Rede de Apoio
-  function acionarRedeApoio(jogadorId: number) {
-    const j = jogadores[jogadorId];
-    if (!j || j.usouApoio || !emCritico(j)) return;
-
-    const menorAtributo = (["saude", "dinheiro", "familia", "consciencia"] as const).reduce(
-      (a, b) => (j[a] <= j[b] ? a : b),
-    );
-
-    const atualizados = jogadores.map((item) => {
-      if (item.id !== jogadorId) return item;
-      const att = { ...item, usouApoio: true, esteveCritico: true };
-      att[menorAtributo] = clamp(item[menorAtributo] + 30);
-      return att;
-    });
-
-    setJogadores(atualizados);
-    setModalApoio(
-      `${j.nome} acionou a Rede de Apoio! Pedir ajuda profissional (CAPS-AD / UBS) ou familiar restabeleceu +30 pontos vitais em ${menorAtributo.toUpperCase()}.`,
-    );
-  }
-
   function reiniciar() {
     pararSomFinal();
     setFase("setup");
@@ -668,14 +634,7 @@ function Jogo() {
         responderSimultaneo(jogadorId, opcao);
       }
     },
-    onPlayerAjuda: (jogadorId) => {
-      acionarRedeApoio(jogadorId);
-    },
     onConfirm: () => {
-      if (modalApoio) {
-        setModalApoio(null);
-        return;
-      }
       if (fase === "setup") iniciar();
       else if (fase === "tutorial") confirmarTutorial();
       else if (fase === "pergunta_simultanea" && todosResponderam) revelarRespostas();
@@ -704,10 +663,6 @@ function Jogo() {
         return;
       }
       if (e.repeat && fase === "tutorial") return;
-      if (modalApoio && (e.key === "Enter" || e.key === "Escape")) {
-        setModalApoio(null);
-        return;
-      }
 
       if (fase === "setup" && e.key === "Enter") {
         iniciar();
@@ -744,7 +699,7 @@ function Jogo() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [fase, cardTutorial, todosResponderam, modalApoio, filaMinigames]);
+  }, [fase, cardTutorial, todosResponderam, filaMinigames]);
 
   // Fase máxima atual dos jogadores no tabuleiro
   const faseMapaAtual = useMemo(() => {
@@ -1141,10 +1096,9 @@ function Jogo() {
         <div className="flex flex-col gap-4">
           <TabuleiroModerno jogadores={jogadores} vezesMinigame15={vezesMinigame15} />
 
-          {/* Status dos Jogadores (Barras de Vida e Rede de Apoio) */}
+          {/* Status dos Jogadores (Barras de Vida) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {jogadores.map((j) => {
-              const precisaApoio = emCritico(j) && !j.usouApoio;
               return (
                 <div
                   key={j.id}
@@ -1173,17 +1127,6 @@ function Jogo() {
                     <BarraAtributo nome="Consciência" valor={j.consciencia} cor="bg-purple-500" Icon={Brain} />
                   </div>
 
-                  {/* Alerta de Apoio */}
-                  {precisaApoio && (
-                    <button
-                      type="button"
-                      onClick={() => acionarRedeApoio(j.id)}
-                      className="mt-2.5 w-full rounded-md border border-destructive/50 bg-destructive/15 px-2 py-1.5 text-[11px] font-bold text-destructive hover:bg-destructive/25 transition flex items-center justify-center gap-1.5 animate-pulse"
-                    >
-                      <LifeBuoy className="size-3.5" />
-                      <span>🆘 Acionar Rede de Apoio (+30)</span>
-                    </button>
-                  )}
                 </div>
               );
             })}
@@ -1414,29 +1357,11 @@ function Jogo() {
         </div>
       </div>
 
-      {/* Modal de Alerta da Rede de Apoio */}
+      {/* Minigame em grupo da Casa 15 */}
       {fase === "minigame" && filaMinigames[0] && (
         <MinigameModal evento={filaMinigames[0]} quantidade={jogadores.length} onConcluir={concluirMinigame} />
       )}
 
-      {modalApoio && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="panel max-w-md w-full p-6 text-center border-2 border-emerald-500 shadow-2xl">
-            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-              <LifeBuoy className="size-8" />
-            </div>
-            <h3 className="mt-3 text-xl font-bold text-foreground">Rede de Apoio Acionada!</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{modalApoio}</p>
-            <button
-              type="button"
-              onClick={() => setModalApoio(null)}
-              className="mt-5 w-full rounded-lg bg-primary py-2.5 font-bold text-sm text-primary-foreground transition hover:opacity-90"
-            >
-              Compreendido! Continuar Jogo
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
