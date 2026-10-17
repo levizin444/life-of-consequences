@@ -1,3 +1,4 @@
+/// <reference types="bun" />
 import { describe, expect, test } from "bun:test";
 import { TABULEIRO } from "./game-data";
 import { faseDaCasa, podeIniciarPartida, podeReiniciarFinal, proximoCardTutorial } from "./game-rules";
